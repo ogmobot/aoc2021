@@ -1,0 +1,10 @@
+#!/usr/bin/racket
+#lang at-exp racket
+(require algol60/algol60)
+@literal-algol{
+
+begin
+    printsln (`hello, world!')
+end
+
+}
