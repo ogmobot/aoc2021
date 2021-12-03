@@ -118,3 +118,9 @@ program day03
         end function
 
 end program day03
+
+! Despite some unusual conventions and syntax (rewind, goto, dimension)
+! FORTRAN feels surprisingly modern. The standards committees must have
+! worked very hard to ensure this is the case, but another contributor to
+! this feeling is probably that FORTRAN inspired so many languages that
+! I've already learned FORTRAN's way of doing things via its descendants.
