@@ -112,3 +112,9 @@ public class day04 {
         }
     }
 }
+
+/*
+ * Java wasn't quite as overly annoying as I remember -- it was nice to be able
+ * to write a lambda expression in List.removeIf(). I tried to be as UnnecessarilyVerboseAsPossible
+ * as this seems to be a PreferredDesignPatternOfChoice in the standard library.
+ */
