@@ -78,4 +78,12 @@ void main() {
     }
     total.writeln;
 }
-// 953014 too high
+
+/* Feels a bit like C, but the Uniform Function Call Syntax can make it feel
+   more like you're calling object methods. I find `foreach (x; max.iota)` much
+   neater than the C-style `for (i = 0; i < max; i++)`, but this language allows
+   both. In some ways I think the language might be too flexibile; I could see
+   myself getting mixed up with what's what using the UFCS. Still, it's pretty
+   comfy to program in. I'm always fond of anonymous functions and the operator
+   for "array append" (xs ~= x;) is pretty nice.
+*/
