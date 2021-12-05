@@ -40,7 +40,7 @@ public class day04 {
                     }
                     // check columns
                     if (!numsSoFar.contains(vals[i + 5*j])) {
-                        flag = false;
+                        colflag = false;
                     }
                 }
                 if (rowflag || colflag) { return true; }
