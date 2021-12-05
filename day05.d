@@ -6,7 +6,7 @@ import std.regex;
 import std.range;
 import std.stdio;
 
-const auto MAXVAL = 1000;
+immutable auto MAXVAL = 1000;
 
 struct Segment {
     int x1, y1, x2, y2;
@@ -14,7 +14,7 @@ struct Segment {
 
 Segment parse_segm (string line) {
     Segment result;
-    const auto re = regex(`(\d+),(\d+) -> (\d+),(\d+)`);
+    immutable auto re = ctRegex!`(\d+),(\d+) -> (\d+),(\d+)`;
     auto words = line.matchAll(re);
     result.x1 = to!int(words.front[1]);
     result.y1 = to!int(words.front[2]);
