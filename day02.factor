@@ -1,54 +1,56 @@
 ! Run using fact (symlink to factor interpreter)
 USING:
+    arrays
+    combinators
     kernel
     io io.files io.encodings.utf8
-    splitting
-    combinators
-    sequences assocs
     math math.parser
     prettyprint multiline
+    splitting
+    sequences assocs
 ;
 IN: day02
 
-: line>pair ( text -- pair ) ! maps e.g. "forward 5" to { 5 0 }
-    " " split
-    0 over nth
+: word>delta ( text -- array )
     H{
         { "forward" {  1  0 } }
         { "up"      {  0 -1 } }
         { "down"    {  0  1 } }
-    } at
-    ! ( words pair )
+    } at ;
+
+: line>pair ( text -- pair ) ! maps e.g. "forward 5" to { 5 0 }
+    " " split
+    0 over nth word>delta
     1 rot nth string>number
     ! ( pair size )
-    swap
-    [ over * ] map
-    nip
+    [ * ] curry map
 ;
 
-: change-state ( state text -- new-state )
-    ! state is { horizonal vertical aim }
-    " " split
-    1 over nth string>number
-    swap
-    0 swap nth
-    ! ( state size word )
+: sizeword>delta ( state size word -- state delta )
     {
         { "forward" [
             over 2 swap nth
             ! ( state size aim )
             over *
             ! ( state dx dy )
-            { 0 } swap prefix swap prefix
+            0 3array
         ] }
         { "up" [
-            { 0 0 -1 } [ over * ] map nip
+            { 0 0 -1 } swap [ * ] curry map
         ] }
         { "down" [
-            { 0 0 1 } [ over * ] map nip
+            { 0 0 1 } swap [ * ] curry map
         ] }
-    } case
-    ! ( state delta )
+    } case ;
+
+: change-state ( state text -- state' )
+    ! state is { horizonal vertical aim }
+    " " split
+    1 over nth string>number
+    swap
+    0 swap nth
+    ! ( state size word )
+    sizeword>delta
     [ + ] 2map
 ;
 
@@ -72,5 +74,5 @@ but-last 1 [ * ] reduce .
     state-accumulation approach for part 2 is pretty close to using variables
     anyway!)
     I probably could have used similar approaches for both parts, but using
-    different methods allows me to explore more of the language!
+    different methods allows me to explore more of the language ;)
 ]]
