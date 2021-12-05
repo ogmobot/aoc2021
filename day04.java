@@ -28,27 +28,22 @@ public class day04 {
             numsSoFar.add(val);
         }
         public boolean hasBingo() {
-            // check rows
-            boolean flag;
+            boolean rowflag;
+            boolean colflag;
             for (int i = 0; i < 5; i++) {
-                flag = true;
+                rowflag = true;
+                colflag = true;
                 for (int j = 0; j < 5; j++) {
+                    // check rows
                     if (!numsSoFar.contains(vals[5*i + j])) {
-                        flag = false;
+                        rowflag = false;
                     }
-                }
-                if (flag) { return true; }
-            }
-            // check columns
-            flag = true;
-            for (int i = 0; i < 5; i++) {
-                flag = true;
-                for (int j = 0; j < 5; j++) {
+                    // check columns
                     if (!numsSoFar.contains(vals[i + 5*j])) {
                         flag = false;
                     }
                 }
-                if (flag) { return true; }
+                if (rowflag || colflag) { return true; }
             }
             // diagonals don't count
             return false;
