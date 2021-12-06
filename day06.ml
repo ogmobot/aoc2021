@@ -33,7 +33,7 @@ let iters_1 = 80 and iters_2 = 256;;
 
 let u = (iterate update t iters_1)
 and v = (iterate update t iters_2) in
-    Format.printf "Part 1: %d\nPart 2: %d\n"
+    Format.printf "%d\n%d\n"
         (List.fold_left (+) 0 u) (List.fold_left (+) 0 v);;
 
 (*  The nearest touchstone to OCaml I'm familiar with is Haskell (at least in
