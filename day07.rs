@@ -9,7 +9,6 @@ fn main() {
         .expect("File read error");
     let vals: Vec<i32> = contents
         .split(",")
-        .filter(|s| !s.is_empty())
         .map(|s| s.trim().parse().unwrap())
         .collect();
     // part 1
@@ -29,4 +28,8 @@ fn main() {
         .min().unwrap();
     println!("{}", result_p2);
 }
-// not 96003565
+
+/* This is probably not idiomatic Rust, but I'm a sucker for functional style.
+   Given the importance that Rust places on memory safety, I can see why the
+   `.unwrap()` and `.expect()` methods exist, but they're a little unwieldy for
+   a casual script like this one. */
