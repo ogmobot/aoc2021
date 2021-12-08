@@ -11,15 +11,18 @@ sub similar ($a, $b) {
     }
 }
 
-sub tr_1478 ($word) {
-    given $word.chars {
-        when $_ == 2 { {1 => $word}; }
-        when $_ == 3 { {7 => $word}; }
-        when $_ == 4 { {4 => $word}; }
-        when $_ == 7 { {8 => $word}; }
-        default { %(); }
-    }
+sub tr_1478 (@words) {
+    @words.map(-> $word {
+        given $word.chars {
+            when $_ == 2 {1 => $word};
+            when $_ == 3 {7 => $word};
+            when $_ == 4 {4 => $word};
+            when $_ == 7 {8 => $word};
+            default { %(); }
+        }
+    }).reduce(&mapcombine);
 }
+
 sub tr_all (%map, @words) {
     my %newmap = @words.map(-> $word {
         given $word.chars {
@@ -42,12 +45,11 @@ sub tr_all (%map, @words) {
 sub getvals ($line) {
     my ($lhs, $rhs) = $line.split(" | ");
     my @digits = $lhs.split(" ").map({$_.split("").sort.join});
-    my %table1478 = @digits.map(&tr_1478).reduce(&mapcombine);
-    my %table = tr_all(%table1478, @digits);
-    $rhs.split(" ").map({%table.invert().Map{$_.split("").sort.join}});
+    my %table = tr_all (tr_1478 @digits), @digits;
+    $rhs.split(" ").map({%table.invert.Map{$_.split("").sort.join}});
 }
 
-my @values = "input08.txt".IO.lines.map({ getvals($_); }).map(*.List);
+my @values = "input08.txt".IO.lines.map(&getvals).map(*.List);
 # part 1
 say @values.map({ $_.map({(1, 4, 7, 8).contains($_)}).sum }).sum;
 # part 2
