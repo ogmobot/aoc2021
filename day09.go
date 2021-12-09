@@ -82,3 +82,13 @@ func main() {
     sort.Slice(sizes, func (i, j int) bool { return sizes[i] > sizes[j] })
     fmt.Println(sizes[0] * sizes[1] * sizes[2])
 }
+
+/* Golang is a bit... meh. Passing arrays by value probably means less
+   mutability-related shenanigans, but it's annoying to need to use
+   `xs = append(xs, x)` to extend an array. The C-style `for` loops are also a
+   bit bothersome. At least the package library is extensive. 
+   I also tried solving this problem with goroutines, but since it's such a
+   small program, the result took more time and more memory than the orignal.
+   Still, Go seems like a good option if ever I need to do something with a lot
+   of "threads" in parallel.
+*/
