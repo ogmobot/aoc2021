@@ -35,20 +35,6 @@ func risk(array *([]string), row int, col int) int {
     return 0
 }
 
-func find_attractor(array []string, row int, col int) coord {
-    var adjs []coord
-    for risk(&array, row, col) == 0 {
-        adjs = adjacent_coords(&array, row, col)
-        for i := 0; i < len(adjs); i++ {
-            if array[adjs[i].row][adjs[i].col] < array[row][col] {
-                row, col = adjs[i].row, adjs[i].col
-                break
-            }
-        }
-    }
-    return coord{row, col}
-}
-
 func basin_size(array *([]string), lowpoint coord, result chan int) {
     // because every point drains to a single lowpoint, each basin must be bounded by 9s
     visited := make(map[coord]bool)
@@ -71,7 +57,7 @@ func basin_size(array *([]string), lowpoint coord, result chan int) {
 }
 
 func main() {
-    inputfile, err := os.Open("input09.orig")
+    inputfile, err := os.Open("input09.txt")
     if err != nil { panic(err) }
 
     var seafloor []string
@@ -105,6 +91,7 @@ func main() {
     sort.Slice(sizes, func (i, j int) bool { return sizes[i] > sizes[j] })
     //fmt.Println(sizes)
     fmt.Println(sizes[0] * sizes[1] * sizes[2])
+
 }
 
 /* Golang is a bit... meh. Passing arrays by value probably means less
