@@ -99,3 +99,10 @@ int main(void) {
     std::cout << auto_scores.at(auto_scores.size()/2) << std::endl;
     return 0;
 }
+
+/* The C++ standard library has a lot of useful stuff in it, and my familiarity
+   with C makes it relatively easy to use. (That said, I'm only using a tiny
+   part of the language in this solution.)
+   C++'s biggest flaw is probably its backwards compatibility with C. Check out
+   the switch/case statement (featuring `goto`) in the lineresult function.
+*/
