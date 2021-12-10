@@ -13,6 +13,15 @@ type coord struct {
     col int
 }
 
+func contains(array []coord, elem coord) bool {
+    for i := 0; i < len(array); i++ {
+        if array[i] == elem {
+            return true
+        }
+    }
+    return false
+}
+
 func adjacent_coords(array *([]string), row int, col int) []coord {
     var result []coord
     if row > 0                 { result = append(result, coord{row - 1, col}) }
@@ -35,7 +44,7 @@ func risk(array *([]string), row int, col int) int {
     return 0
 }
 
-func basin_size(array *([]string), lowpoint coord, result chan int) {
+func basin_size(array *([]string), lowpoint coord) int {
     // because every point drains to a single lowpoint, each basin must be bounded by 9s
     visited := make(map[coord]bool)
     var todo []coord
@@ -48,12 +57,12 @@ func basin_size(array *([]string), lowpoint coord, result chan int) {
         adjs = adjacent_coords(array, popped.row, popped.col)
         for i := 0; i < len(adjs); i++ {
             r, c := adjs[i].row, adjs[i].col
-            if (!visited[coord{r, c}]) && (int((*array)[r][c]) != int('9')) {
+            if (!visited[coord{r, c}]) && (!contains(todo, coord{r, c})) && (int((*array)[r][c]) != int('9')) {
                 todo = append(todo, coord{r, c})
             }
         }
     }
-    result <- len(visited)
+    return len(visited)
 }
 
 func main() {
@@ -83,7 +92,9 @@ func main() {
     var sizes []int
     results := make(chan int)
     for i := 0; i < len(lowpoints); i++ {
-        go basin_size(&seafloor, lowpoints[i], results)
+        go func (lowpoint coord) {
+            results <- basin_size(&seafloor, lowpoint)
+        }(lowpoints[i])
     }
     for i := 0; i < len(lowpoints); i++ {
         sizes = append(sizes, (<-results))
