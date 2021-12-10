@@ -1,46 +1,49 @@
+#include <algorithm>
 #include <fstream>
 #include <iostream>
-#include <string>
+#include <map>
 #include <stack>
+#include <string>
 #include <vector>
-#include <algorithm>
 
-enum status_code {
-    STATUS_OK,
-    STATUS_CORRUPT,
-    STATUS_INCOMPLETE
-};
-
-struct lineresult {
-    status_code code;
+struct checkresult {
+    enum {
+        STATUS_OK,
+        STATUS_CORRUPT,
+        STATUS_INCOMPLETE
+    } code;
     long score;
 };
 
-int getscore (char b) {
-    switch (b) {
-    case ')': return 3;
-    case ']': return 57;
-    case '}': return 1197;
-    case '>': return 25137;
-    case '(': return 1;
-    case '[': return 2;
-    case '{': return 3;
-    case '<': return 4;
-    default:  return 0;
-    }
-}
+const std::map<char, long> bracketscore {
+    {')',     3},
+    {']',    57},
+    {'}',  1197},
+    {'>', 25137},
+    {'(',     1},
+    {'[',     2},
+    {'{',     3},
+    {'<',     4}
+};
+
+const std::map<char, char> bracketpairs {
+    {'(', ')'},
+    {'[', ']'},
+    {'{', '}'},
+    {'<', '>'}
+};
 
 long stackscore (std::stack<char> brackets) {
     long score = 0;
     while (!brackets.empty()) {
         score *= 5;
-        score += getscore(brackets.top());
+        score += bracketscore.at(brackets.top());
         brackets.pop();
     }
     return score;
 }
 
-lineresult syntaxcheck(std::string line) {
+checkresult syntaxcheck(std::string line) {
     std::stack<char> brackets;
     for (int i = 0; i < line.length(); i++) {
         switch (line[i]) {
@@ -51,46 +54,41 @@ lineresult syntaxcheck(std::string line) {
             brackets.push(line[i]);
             break;
         case ')':
-            if (brackets.top() != '(') goto corrupt;
-            brackets.pop();
-            break;
         case ']':
-            if (brackets.top() != '[') goto corrupt;
-            brackets.pop();
-            break;
         case '}':
-            if (brackets.top() != '{') goto corrupt;
-            brackets.pop();
-            break;
         case '>':
-            if (brackets.top() != '<') goto corrupt;
+            if (bracketpairs.at(brackets.top()) != line[i])
+                return {checkresult::STATUS_CORRUPT, bracketscore.at(line[i])};
             brackets.pop();
             break;
-        corrupt:
-        default:
-            return {STATUS_CORRUPT, getscore(line[i])};
         }
     }
-    //if (brackets.empty()) return {STATUS_OK, 0};
-    return {STATUS_INCOMPLETE, stackscore(brackets)};
+    //if (brackets.empty()) return {checkresult::STATUS_OK, 0};
+    return {checkresult::STATUS_INCOMPLETE, stackscore(brackets)};
 }
 
 int main(void) {
     std::ifstream inputfile("input10.txt");
 
     std::string line;
-    lineresult res;
+    checkresult res;
 
     long corrupt_total = 0;
     std::vector<long> auto_scores;
     while (std::getline(inputfile, line)) {
         res = syntaxcheck(line);
-        if (res.code == STATUS_CORRUPT)
+        switch (res.code) {
+        case checkresult::STATUS_CORRUPT:
             corrupt_total += res.score;
-        else if (res.code == STATUS_INCOMPLETE)
+            break;
+        case checkresult::STATUS_INCOMPLETE:
             auto_scores.push_back(res.score);
-        else
+            break;
+        case checkresult::STATUS_OK:
+        default:
             std::cout << "ERROR: line without errors encountered!" << std::endl;
+            break;
+        }
     }
     // part 1
     std::cout << corrupt_total << std::endl;
@@ -103,6 +101,8 @@ int main(void) {
 /* The C++ standard library has a lot of useful stuff in it, and my familiarity
    with C makes it relatively easy to use. (That said, I'm only using a tiny
    part of the language in this solution.)
-   C++'s biggest flaw is probably its backwards compatibility with C. Check out
-   the switch/case statement (featuring `goto`) in the lineresult function.
+   C++'s biggest flaw is probably its backwards compatibility with C. The
+   original version of this program used `goto` in the syntaxcheck function.
+   (I later refactored the function to use maps instead, which I didn't know
+   about when I wrote the original solution.)
 */
