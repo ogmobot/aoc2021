@@ -1,3 +1,5 @@
+#!/usr/bin/julia
+
 function adjs(n, dims)
     # returns indices that are adjacent to n
     # in a 2D grid with dimension `dims`
