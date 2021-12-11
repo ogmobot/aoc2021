@@ -74,7 +74,7 @@ function main()
             # part 1
             println(total)
         end
-        if subtotal == 100
+        if subtotal == length(grid)
             # part 2
             println(timer)
             break
