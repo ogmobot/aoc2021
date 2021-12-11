@@ -3,34 +3,35 @@
 function adjs(n, dims)
     # returns indices that are adjacent to n
     # in a 2D grid with dimension `dims`
+    # (it'd probably be better to do this with [i,j]...)
     height, width = dims
     result = []
     isleft = true
     isright = true
     if n % width != 1
         isleft = false
-        append!(result, [n-1])
+        push!(result, n-1)
     end
     if n % width != 0
         isright = false
-        append!(result, [n+1])
+        push!(result, n+1)
     end
     if n > width
-        append!(result, [n-width])
+        push!(result, n-width)
         if !isleft
-            append!(result, [n-width-1])
+            push!(result, n-width-1)
         end
         if !isright
-            append!(result, [n-width+1])
+            push!(result, n-width+1)
         end
     end
     if n <= (height-1)*width
-        append!(result, [n+width])
+        push!(result, n+width)
         if !isleft
-            append!(result, [n+width-1])
+            push!(result, n+width-1)
         end
         if !isright
-            append!(result, [n+width+1])
+            push!(result, n+width+1)
         end
     end
     result
@@ -42,7 +43,7 @@ function update(grid)
     flashed = []
     for (index, value) in enumerate(grid)
         if value == 9
-            append!(fullcharge, index)
+            push!(fullcharge, index)
         end
         grid[index] = grid[index] + 1
     end
@@ -51,14 +52,12 @@ function update(grid)
         for i in adjs(index, size(grid))
             grid[i] += 1
             if grid[i] == 10 # don't have to worry about adding same one twice
-                append!(fullcharge, i)
+                push!(fullcharge, i)
             end
         end
-        append!(flashed, index)
+        push!(flashed, index)
     end
-    for index in flashed
-        grid[index] = 0
-    end
+    foreach(x -> grid[x] = 0, flashed)
     return length(flashed)
 end
 
