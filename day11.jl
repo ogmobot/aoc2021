@@ -5,7 +5,7 @@ function adjs(n, dims)
     result = []
     isleft = true
     isright = true
-    if n % 10 != 1
+    if n % width != 1
         isleft = false
         append!(result, [n-1])
     end
@@ -81,4 +81,8 @@ function main()
     end
 end
 
-main()
+@time main()
+
+#=
+Julia seems like a nice language. It doesn't deserve code this ugly.
+=#
