@@ -42,3 +42,10 @@ def main() = {
 }
 
 main()
+
+/*
+It's been a while since I worked with immutable data. Scala was a pleasant way
+to get back to this style of programming. The language apparently has tail-call
+optimisation; my solution doesn't take advantage of this, so it might crash on
+huge inputs. I might try to rewrite it later.
+*/
