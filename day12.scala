@@ -4,11 +4,11 @@ import scala.io.Source
 
 def find_connections(pairs: List[List[String]], a: String): List[String] =
     pairs match {
-    case p :: tail if p(0) == a => p(1) +: find_connections(tail, a)
-    case p :: tail if p(1) == a => p(0) +: find_connections(tail, a)
+    case Nil                    => Nil
+    case p :: tail if p(0) == a => p(1) :: find_connections(tail, a)
+    case p :: tail if p(1) == a => p(0) :: find_connections(tail, a)
     case p :: tail              =>         find_connections(tail, a)
-    case _                      => Nil
-}
+    }
 
 def count_paths(
     start: String, end: String,
@@ -17,18 +17,16 @@ def count_paths(
     lenient: Boolean
 ): Long =
     find_connections(connections, start)
-    .filter(
-        x => (!visited.contains(x)) || (lenient && visited.count(_ == x) == 1))
-    .map(
-        x => {
-            if (x == end) {
-                1
-            } else {
-                count_paths(
-                    x, end,
-                    connections,
-                    (start +: visited).filter(xx => xx.exists(_.isLower)),
-                    lenient && (!visited.contains(x)))}})
+    .filter(x => (!visited.contains(x)) || lenient)
+    .map(x =>
+        if (x == end) {
+            1
+        } else {
+            count_paths(
+                x, end,
+                connections,
+                (start :: visited).filter(_(0).isLower),
+                lenient && (!visited.contains(x)))})
     .sum
 
 def main() = {
