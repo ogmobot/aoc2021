@@ -10,33 +10,49 @@ def find_connections(pairs: List[List[String]], a: String): List[String] =
     case p :: tail              =>         find_connections(tail, a)
     }
 
-def count_paths(
-    start: String, end: String,
-    connections: List[List[String]],
-    visited: List[String],
-    lenient: Boolean
-): Long =
-    find_connections(connections, start)
-    .filter(x => (!visited.contains(x)) || lenient)
-    .map(x =>
-        if (x == end) {
-            1
-        } else {
-            count_paths(
-                x, end,
-                connections,
-                (start :: visited).filter(_(0).isLower),
-                lenient && (!visited.contains(x)))})
-    .sum
+def count_paths_memo(
+    connections: List[List[String]]
+): ((String, String, Set[String], Boolean) => Long) = {
+    val cache =
+        collection.mutable.Map.empty[
+            (String, String, Set[String], Boolean),
+            Long
+        ]
+    def count_paths(
+        start: String, end: String,
+        visited: Set[String],
+        lenient: Boolean
+    ): Long =
+        cache.getOrElseUpdate((start, end, visited, lenient),
+                find_connections(connections, start)
+                .filter(x =>
+                    (x != "start") &&
+                    ((!visited.contains(x)) || lenient))
+                .map(x =>
+                    if (x == end) {
+                        1
+                    } else {
+                        count_paths(
+                            x, end,
+                            {
+                                if (x(0).isLower) visited + x
+                                else visited
+                            },
+                            lenient && (!visited.contains(x)))})
+                .sum)
+    (a: String, b: String, c: Set[String], d: Boolean) =>
+        count_paths(a, b, c, d)
+}
 
 def main() = {
     val connections = Source.fromFile("input12.txt").getLines().map(
         _.split("-").toList
     ).toList
+    val count_paths = count_paths_memo(connections)
     // part 1
-    println(count_paths("start", "end", connections, List[String](), false))
+    println(count_paths("start", "end", Set("start"), false))
     // part 2
-    println(count_paths("start", "end", connections, List("start"), true))
+    println(count_paths("start", "end", Set("start"), true))
 }
 
 main()
