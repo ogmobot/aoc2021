@@ -50,9 +50,9 @@ def main() = {
     ).toList
     val count_paths = count_paths_memo(connections)
     // part 1
-    println(count_paths("start", "end", Set("start"), false))
+    println(count_paths("start", "end", Set[String](), false))
     // part 2
-    println(count_paths("start", "end", Set("start"), true))
+    println(count_paths("start", "end", Set[String](), true))
 }
 
 main()
