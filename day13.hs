@@ -48,14 +48,18 @@ makeStrings ((Point x y):ps) buffer =
     makeStrings ps (upper ++ [altered] ++ lower)
     where upper = take y buffer
           lower = drop (y+1) buffer
-          left = take x (buffer !! y)
-          right = drop (x+1) (buffer !! y)
-          altered = left ++ "#" ++ right
+          left = take (2*x) (buffer !! y)
+          right = drop (2*(x+1)) (buffer !! y)
+          altered = left ++ "@@" ++ right
 
 newBuffer :: [Point] -> [String]
-newBuffer [] = ["."]
-newBuffer ps = (map (\x -> (map (\x -> ' ') [0..maxx])) [0..maxy])
-    where maxx = maximum (map (\(Point x y) -> x) ps)
+newBuffer [] = []
+newBuffer ps = (map (\x ->
+                    (map (\x -> ' ') ([minx..maxx]++[minx..maxx])))
+                    [miny..maxy])
+    where minx = minimum (map (\(Point x y) -> x) ps)
+          miny = minimum (map (\(Point x y) -> y) ps)
+          maxx = maximum (map (\(Point x y) -> x) ps)
           maxy = maximum (map (\(Point x y) -> y) ps)
 
 main = do
