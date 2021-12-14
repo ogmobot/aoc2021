@@ -21,7 +21,7 @@
         {}
         (let [[k v] (first substable)]
             (merge
-                {(list (first k) (second k))
+                {(seq k)
                     (list
                         (list (first k) (first v))
                         (list (first v) (second k)))}
@@ -52,3 +52,14 @@
             (println (- (apply max (vals freqs)) (apply min (vals freqs)))))))
 
 (main)
+
+;;; Clojure is one of the weirder LISPs I've used. Apparently it can't into
+;;; tail call optimisation, so it introduces a `recur` keyword that interacts
+;;; with `loop` in a way I'd describe as "the poor man's TCO". My original
+;;; naive approach to this problem required enough recursion to overflow the
+;;; stack, so I had to use it; but luckily I was able to purge it from the
+;;; program once I had updated it for Part 2 of the problem.
+;;; All that said, it was nice to have functions like `iterate` and
+;;; `frequencies` out of the box (even if CAR and CDR are sadly absent).
+;;; Anonymous functions are also far less verbose than those of most LISPs,
+;;; as is accessing hashmaps.
