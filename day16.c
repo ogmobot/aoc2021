@@ -224,9 +224,9 @@ void print_expr(struct packet *p) {
         case T_PRODUCT: printf("*");   break;
         case T_MINIMUM: printf("MIN"); break;
         case T_MAXIMUM: printf("MAX"); break;
-        case T_GREATER: printf(">");   break;
-        case T_LESS:    printf("<");   break;
-        case T_EQUAL:   printf("=");   break;
+        case T_GREATER: printf("GT");  break;
+        case T_LESS:    printf("LT");  break;
+        case T_EQUAL:   printf("EX");  break;
         default:        printf("???"); break;
         }
         for (int i = 0; i < (p->top_subpacket); i++) {
@@ -252,6 +252,11 @@ int main(void) {
     printf("%lu\n", eval_packet(p));
 
     /* bonus -- print AST */
+    printf(
+        "(defun lt (a b) (if (< a b) 1 0))\n"
+        "(defun gt (a b) (if (> a b) 1 0))\n"
+        "(defun ex (a b) (if (= a b) 1 0))\n"
+    );
     print_expr(p);
     printf("\n");
 
