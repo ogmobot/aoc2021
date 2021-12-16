@@ -257,3 +257,11 @@ int main(void) {
 
     return 0;
 }
+
+/* On day 14, I said Clojure was one of the weirder LISPs I've used. But if
+ * the AST in this problem counts as one, it's weirder yet.
+ * Good ol' C seemed like a good option for the bithacking necessary to decode
+ * the AST. I'm glad I didn't shoot myself in the foot... too many times ;)
+ * (P.S. the allocated memory is only freed when the program exits. If you use
+ * this code elsewhere, don't let it leak!)
+ */
