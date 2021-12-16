@@ -50,15 +50,14 @@ defmodule Day15 do
 
     def dijkstra(grid) do
         size = gridsize(grid)
-        dijkstra grid, [{0, 0}], {size-1, size-1}, %{{0, 0} => 0}, MapSet.new(), size
+        dijkstra grid, %{{0, 0} => 0}, {size-1, size-1}, %{{0, 0} => 0}, MapSet.new(), size
     end
     def dijkstra(grid, queue, target, best_distances, visited, size) do
-        if (best_distances |> Map.has_key?(target)) do
-            best_distances[target] # |> Map.get(target)
+        sorted = queue |> Enum.sort(fn {_, a}, {_, b} -> a < b end)
+        {current, _} = hd(sorted)
+        if current == target do
+            best_distances[target]
         else
-            sorted = queue |> Enum.sort(fn a, b ->
-                (best_distances |> Map.get(a)) <= (best_distances |> Map.get(b)) end)
-            current = hd(sorted)
             new_dists = current
                 |> neighbours(size)
                 |> Enum.filter(fn coord -> coord not in visited end)
@@ -71,13 +70,18 @@ defmodule Day15 do
                 |> Enum.reduce(%{}, fn a, b -> Map.merge(a, b) end)
             dijkstra(
                 grid,
-                tl(sorted) ++ (current
+                Map.new(tl(sorted))
+                |> Map.merge(current
                     |> neighbours(size)
                     |> Enum.filter(fn coord ->
-                        (coord not in visited && coord not in sorted) end)),
+                        (coord not in visited && !Map.has_key?(queue, coord)) end)
+                    |> Enum.map(fn coord ->
+                        %{coord => best_distances[current] + grid[coord]}
+                    end)
+                    |> Enum.reduce(%{}, fn a, b -> Map.merge(a, b) end)),
                 target,
                 Map.merge(best_distances, new_dists),
-                MapSet.put(visited, current),
+                visited |> MapSet.put(current),
                 size)
         end
     end
