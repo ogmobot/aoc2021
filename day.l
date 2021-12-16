@@ -1,5 +1,6 @@
 #!/usr/bin/picolisp
 
-(println "Hello, world!")
+(in "input.txt" (until (eof) (prinl (line))))
+(prinl "Hello, world!")
 
 (bye)
