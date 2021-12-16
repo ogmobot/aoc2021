@@ -24,6 +24,12 @@ struct packet {
     uint8_t top_subpacket;
 };
 
+struct bit_reader {
+    FILE *handle;
+    char gotc;
+    int8_t bit_index;
+};
+
 /*** parsing functions ***/
 
 uint8_t hex_value(char mander) {
@@ -40,47 +46,42 @@ uint8_t hex_value(char mander) {
     }
 }
 
-uint8_t next_bit(FILE *handle, char *gotc, int8_t *bit_index) {
-    /* Note - mutates current position in file! */
-    if ((*bit_index) < 0) {
-        (*bit_index) = 3;
-        (*gotc) = fgetc(handle);
+uint8_t next_bit(struct bit_reader *r) {
+    if ((r->bit_index) < 0) {
+        (r->bit_index) = 3;
+        (r->gotc) = fgetc(r->handle);
     }
-    if ((*gotc) == (char) EOF) return (uint8_t) EOF;
-    return !!(hex_value(*gotc) & (1 << ((*bit_index)--)));
+    if ((r->gotc) == (char) EOF) return (uint8_t) EOF;
+    return !!(hex_value(r->gotc) & (1 << ((r->bit_index)--)));
 }
 
-uint8_t parse_bits_u8(FILE *handle, int n, char *gotc, int8_t *bit_index) {
+uint8_t parse_bits_u8(struct bit_reader *r, int n) {
     uint8_t acc = 0;
     uint8_t bit;
     for (int i = 0; i < n; i++) {
-        bit = next_bit(handle, gotc, bit_index);
+        bit = next_bit(r);
         acc = (acc << 1) | bit;
     }
     return acc;
 }
 
-uint64_t parse_bits_u64(FILE *handle, int n, char *gotc, int8_t *bit_index) {
+uint64_t parse_bits_u64(struct bit_reader *r, int n) {
     uint64_t acc = 0;
     uint8_t bit;
     for (int i = 0; i < n; i++) {
-        bit = next_bit(handle, gotc, bit_index);
+        bit = next_bit(r);
         acc = (acc << 1) | bit;
     }
     return acc;
 }
 
-size_t parse_into_literal( /* returns number of bits parsed */
-    FILE *handle,
-    uint64_t *dest,
-    char *gotc,
-    int8_t *bit_index
-) {
+size_t parse_into_literal(struct bit_reader *r, uint64_t *dest) {
+    /* returns number of bits parsed */
     size_t amount_parsed = 0;
     while (true) {
         uint8_t acc = 0;
         for (int i = 0; i < 5; i++) {
-            acc = (acc << 1) + next_bit(handle, gotc, bit_index);
+            acc = (acc << 1) + next_bit(r);
         }
         amount_parsed += 5;
         *dest = ((*dest) << 4) + (acc & 0b1111);
@@ -93,37 +94,33 @@ void add_subpacket(struct packet *dest, struct packet *sub) {
     dest->subpackets[(dest->top_subpacket)++] = sub;
 }
 
-size_t parse_into_packet( /* returns number of bits parsed */
-    FILE *handle,
-    struct packet *dest,
-    char *gotc,
-    int8_t *bit_index
-) {
+size_t parse_into_packet(struct bit_reader *r, struct packet *dest) {
+    /* returns number of bits parsed */
     size_t amount_parsed = 0;
 
-    dest->version = parse_bits_u8(handle, 3, gotc, bit_index);
-    dest->type    = parse_bits_u8(handle, 3, gotc, bit_index);
+    dest->version = parse_bits_u8(r, 3);
+    dest->type    = parse_bits_u8(r, 3);
     amount_parsed += 6;
     if (dest->type == T_LITERAL) {
-        amount_parsed += parse_into_literal(handle, &(dest->value), gotc, bit_index);
+        amount_parsed += parse_into_literal(r, &(dest->value));
     } else {
         amount_parsed += 1;
-        if (next_bit(handle, gotc, bit_index)) { /* length type id = 1 */
-            int npackets = parse_bits_u64(handle, 11, gotc, bit_index);
+        if (next_bit(r)) { /* length type id = 1 */
+            int npackets = parse_bits_u64(r, 11);
             amount_parsed += 11;
             for (int i = 0; i < npackets; i++) {
-                struct packet *p = calloc(sizeof(struct packet), 1);
-                size_t res = parse_into_packet(handle, p, gotc, bit_index);
-                add_subpacket(dest, p);
+                struct packet *new_packet = calloc(sizeof(struct packet), 1);
+                size_t res = parse_into_packet(r, new_packet);
+                add_subpacket(dest, new_packet);
                 amount_parsed += res;
             }
         } else { /* length type id = 0 */
-            int nbits = parse_bits_u64(handle, 15, gotc, bit_index);
+            int nbits = parse_bits_u64(r, 15);
             amount_parsed += 15;
             size_t res = 0;
             while (res < nbits) {
                 struct packet *new_packet = calloc(sizeof(struct packet), 1);
-                res += parse_into_packet(handle, new_packet, gotc, bit_index);
+                res += parse_into_packet(r, new_packet);
                 add_subpacket(dest, new_packet);
             }
             amount_parsed += res;
@@ -216,17 +213,16 @@ void print_expr(struct packet *p) {
 
 int main(void) {
     FILE *input = fopen("input16.txt", "r");
-    int8_t bit_index = -1;
-    char gotc = 0;
 
-    struct packet *p = calloc(sizeof(struct packet), 1);
-    parse_into_packet(input, p, &gotc, &bit_index);
+    struct packet p     = {};
+    struct bit_reader r = {input, '\0', -1};
+    parse_into_packet(&r, &p);
     fclose(input);
 
     /* part 1 */
-    printf("%u\n", version_sum(p));
+    printf("%u\n", version_sum(&p));
     /* part 2 */
-    printf("%lu\n", eval_packet(p));
+    printf("%lu\n", eval_packet(&p));
 
     /* bonus -- print AST */
     /*
