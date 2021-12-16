@@ -30,14 +30,14 @@ struct bit_reader {
 
 uint8_t hex_value(char mander) {
     switch (mander) {
-    case '0': return  0; case '1': return  1;
-    case '2': return  2; case '3': return  3;
-    case '4': return  4; case '5': return  5;
-    case '6': return  6; case '7': return  7;
-    case '8': return  8; case '9': return  9;
-    case 'A': return 10; case 'B': return 11;
-    case 'C': return 12; case 'D': return 13;
-    case 'E': return 14; case 'F': return 15;
+    case '0': return   0; case '1': return   1;
+    case '2': return   2; case '3': return   3;
+    case '4': return   4; case '5': return   5;
+    case '6': return   6; case '7': return   7;
+    case '8': return   8; case '9': return   9;
+    case 'A': return 0xA; case 'B': return 0xB;
+    case 'C': return 0xC; case 'D': return 0xD;
+    case 'E': return 0xE; case 'F': return 0xF;
     default: return UINT8_MAX;
     }
 }
@@ -187,6 +187,16 @@ uint32_t version_sum(struct packet *p) {
     return total;
 }
 
+void free_all(struct packet *p) {
+    if (!p) return;
+    if (p->type != T_LITERAL) {
+        free_all(p->child);
+    }
+    free_all(p->sibling);
+    free(p);
+    return;
+}
+
 void print_expr(struct packet *p) {
     if (p->type == T_LITERAL) {
         printf("%lu", p->value);
@@ -215,15 +225,15 @@ void print_expr(struct packet *p) {
 int main(void) {
     FILE *input = fopen("input16.txt", "r");
 
-    struct packet p     = {};
+    struct packet *p    = calloc(sizeof(struct packet), 1);
     struct bit_reader r = {input, '\0', -1};
-    parse_into_packet(&r, &p);
+    parse_into_packet(&r, p);
     fclose(input);
 
     /* part 1 */
-    printf("%u\n", version_sum(&p));
+    printf("%u\n", version_sum(p));
     /* part 2 */
-    printf("%lu\n", eval_packet(&p));
+    printf("%lu\n", eval_packet(p));
 
     /* bonus -- print AST */
     /*
@@ -232,10 +242,11 @@ int main(void) {
         "(defun gt (a b) (if (> a b) 1 0))\n"
         "(defun ex (a b) (if (= a b) 1 0))\n"
     );
-    print_expr(&p);
+    print_expr(p);
     printf("\n");
     */
 
+    free_all(p);
     return 0;
 }
 
@@ -243,6 +254,4 @@ int main(void) {
  * the AST in this problem counts as one, it's weirder yet.
  * Good ol' C seemed like a good option for the bithacking necessary to decode
  * the AST. I'm glad I didn't shoot myself in the foot... too many times ;)
- * (P.S. the allocated memory is only freed when the program exits. If you use
- * this code elsewhere, don't let it leak!)
  */
