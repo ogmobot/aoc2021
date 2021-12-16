@@ -3,33 +3,28 @@
 #include <stdbool.h>
 #include <malloc.h>
 
+/*** enums and structs ***/
+
 enum typeid_t {
-    T_SUM = 0,
+    T_SUM     = 0,
     T_PRODUCT = 1,
     T_MINIMUM = 2,
     T_MAXIMUM = 3,
     T_LITERAL = 4,
     T_GREATER = 5,
-    T_LESS = 6,
-    T_EQUAL = 7,
-};
-
-enum part_t {
-    P_GETVERSION,
-    P_GETTYPE,
-    P_GETLITERAL,
-    P_GETOPSIZE_15,
-    P_GETOPSIZE_11,
-    P_DONE
+    T_LESS    = 6,
+    T_EQUAL   = 7,
 };
 
 struct packet {
-    struct packet *subpackets[UINT8_MAX];
+    struct packet *subpackets[UINT8_MAX - 1];
     uint64_t value;
     enum typeid_t type;
     uint8_t version;
     uint8_t top_subpacket;
 };
+
+/*** parsing functions ***/
 
 uint8_t hex_value(char mander) {
     switch (mander) {
@@ -47,7 +42,6 @@ uint8_t hex_value(char mander) {
 
 uint8_t next_bit(FILE *handle, char *gotc, int8_t *bit_index) {
     /* Note - mutates current position in file! */
-    /* To advance to next character, set bitindex to -1. */
     if ((*bit_index) < 0) {
         (*bit_index) = 3;
         (*gotc) = fgetc(handle);
@@ -56,17 +50,47 @@ uint8_t next_bit(FILE *handle, char *gotc, int8_t *bit_index) {
     return !!(hex_value(*gotc) & (1 << ((*bit_index)--)));
 }
 
-void add_subpacket(struct packet *dest, struct packet *sub) {
-    dest->subpackets[(dest->top_subpacket)++] = sub;
+uint8_t parse_bits_u8(FILE *handle, int n, char *gotc, int8_t *bit_index) {
+    uint8_t acc = 0;
+    uint8_t bit;
+    for (int i = 0; i < n; i++) {
+        bit = next_bit(handle, gotc, bit_index);
+        acc = (acc << 1) | bit;
+    }
+    return acc;
 }
 
-uint32_t version_sum(struct packet *p) {
-    uint32_t total = 0;
-    total += (p->version);
-    for (int i = 0; i < (p->top_subpacket); i++) {
-        total += version_sum((p->subpackets)[i]);
+uint64_t parse_bits_u64(FILE *handle, int n, char *gotc, int8_t *bit_index) {
+    uint64_t acc = 0;
+    uint8_t bit;
+    for (int i = 0; i < n; i++) {
+        bit = next_bit(handle, gotc, bit_index);
+        acc = (acc << 1) | bit;
     }
-    return total;
+    return acc;
+}
+
+size_t parse_into_literal( /* returns number of bits parsed */
+    FILE *handle,
+    uint64_t *dest,
+    char *gotc,
+    int8_t *bit_index
+) {
+    size_t amount_parsed = 0;
+    while (true) {
+        uint8_t acc = 0;
+        for (int i = 0; i < 5; i++) {
+            acc = (acc << 1) + next_bit(handle, gotc, bit_index);
+        }
+        amount_parsed += 5;
+        *dest = ((*dest) << 4) + (acc & 0b1111);
+        if (!(acc & 0b10000)) break;
+    }
+    return amount_parsed;
+}
+
+void add_subpacket(struct packet *dest, struct packet *sub) {
+    dest->subpackets[(dest->top_subpacket)++] = sub;
 }
 
 size_t parse_into_packet( /* returns number of bits parsed */
@@ -76,98 +100,40 @@ size_t parse_into_packet( /* returns number of bits parsed */
     int8_t *bit_index
 ) {
     size_t amount_parsed = 0;
-    uint8_t bit;
-    enum part_t stage = P_GETVERSION;
-    bool done = false;
-    uint64_t acc;
-    while (!done) {
-        switch (stage) {
-        case P_GETVERSION:
-        case P_GETTYPE:
-            acc = 0;
-            for (int i = 0; i < 3; i++) {
-                bit = next_bit(handle, gotc, bit_index);
-                acc = (acc << 1) + bit;
-            }
-            amount_parsed += 3;
-            if (stage == P_GETVERSION) {
-                dest->version = acc;
-                stage = P_GETTYPE;
-            } else { /* P_GETTYPE */
-                dest->type = acc;
-                if (acc == T_LITERAL) {
-                    stage = P_GETLITERAL;
-                } else {
-                    bit = next_bit(handle, gotc, bit_index);
-                    amount_parsed += 1;
-                    if (bit) {
-                        stage = P_GETOPSIZE_11;
-                    } else {
-                        stage = P_GETOPSIZE_15;
-                    }
-                }
-            }
-            break;
-        case P_GETLITERAL:
-            while (true) {
-                acc = 0;
-                for (int i = 0; i < 5; i++) {
-                    bit = next_bit(handle, gotc, bit_index);
-                    acc = (acc << 1) + bit;
-                }
-                amount_parsed += 5;
-                dest->value = ((dest->value) << 4) + (acc & 0b1111);
-                if (!(acc & 0b10000)) break;
-            }
-            stage = P_DONE;
-            break;
-        case P_GETOPSIZE_11: {
-            /* acc is number of sub-packets */
-            acc = 0;
-            for (int i = 0; i < 11; i++) {
-                bit = next_bit(handle, gotc, bit_index);
-                acc = (acc << 1) + bit;
-            }
+
+    dest->version = parse_bits_u8(handle, 3, gotc, bit_index);
+    dest->type    = parse_bits_u8(handle, 3, gotc, bit_index);
+    amount_parsed += 6;
+    if (dest->type == T_LITERAL) {
+        amount_parsed += parse_into_literal(handle, &(dest->value), gotc, bit_index);
+    } else {
+        amount_parsed += 1;
+        if (next_bit(handle, gotc, bit_index)) { /* length type id = 1 */
+            int npackets = parse_bits_u64(handle, 11, gotc, bit_index);
             amount_parsed += 11;
-            struct packet *new_packets = calloc(sizeof(struct packet), acc);
-            for (int i = 0; i < acc; i++) {
-                size_t res;
-                res = parse_into_packet(handle, new_packets + i, gotc, bit_index);
-                add_subpacket(dest, new_packets + i);
+            for (int i = 0; i < npackets; i++) {
+                struct packet *p = calloc(sizeof(struct packet), 1);
+                size_t res = parse_into_packet(handle, p, gotc, bit_index);
+                add_subpacket(dest, p);
                 amount_parsed += res;
             }
-            stage = P_DONE;
-            break;
-        }
-        case P_GETOPSIZE_15: {
-            /* length, in bits, of sub-packets */
-            acc = 0;
-            for (int i = 0; i < 15; i++) {
-                bit = next_bit(handle, gotc, bit_index);
-                acc = (acc << 1) + bit;
-            }
+        } else { /* length type id = 0 */
+            int nbits = parse_bits_u64(handle, 15, gotc, bit_index);
             amount_parsed += 15;
             size_t res = 0;
-            while (res < acc) {
+            while (res < nbits) {
                 struct packet *new_packet = calloc(sizeof(struct packet), 1);
                 res += parse_into_packet(handle, new_packet, gotc, bit_index);
                 add_subpacket(dest, new_packet);
             }
             amount_parsed += res;
-            if (res != acc) {
-                printf("WARNING! Too many bits!\n");
-            }
-            stage = P_DONE;
-            break;
-        }
-        case P_DONE:
-        default:
-            done = true;
-            break;
+            if (res != nbits) printf("WARNING! Too many bits!\n");
         }
     }
     return amount_parsed;
 }
+
+/*** logic functions ***/
 
 uint64_t eval_packet(struct packet *p) {
     uint64_t acc;
@@ -183,7 +149,7 @@ uint64_t eval_packet(struct packet *p) {
             acc *= eval_packet((p->subpackets)[i]);
         return acc;
     case T_MINIMUM:
-        if ((p->top_subpacket) == 0) printf("ERROR (MINIMUM)\n");
+        if ((p->top_subpacket) == 0) printf("ERROR (T_MINIMUM)\n");
         acc = UINT64_MAX;
         for (int i = 0; i < (p->top_subpacket); i++) {
             uint64_t tmp = eval_packet((p->subpackets[i]));
@@ -191,7 +157,7 @@ uint64_t eval_packet(struct packet *p) {
         }
         return acc;
     case T_MAXIMUM:
-        if ((p->top_subpacket) == 0) printf("ERROR (MAXIMUM)\n");
+        if ((p->top_subpacket) == 0) printf("ERROR (T_MAXIMUM)\n");
         acc = 0;
         for (int i = 0; i < (p->top_subpacket); i++) {
             uint64_t tmp = eval_packet((p->subpackets[i]));
@@ -212,6 +178,15 @@ uint64_t eval_packet(struct packet *p) {
     }
     /* This never happens */
     return UINT64_MAX;
+}
+
+uint32_t version_sum(struct packet *p) {
+    uint32_t total = 0;
+    total += (p->version);
+    for (int i = 0; i < (p->top_subpacket); i++) {
+        total += version_sum((p->subpackets)[i]);
+    }
+    return total;
 }
 
 void print_expr(struct packet *p) {
@@ -237,6 +212,8 @@ void print_expr(struct packet *p) {
     }
 }
 
+/*** main function ***/
+
 int main(void) {
     FILE *input = fopen("input16.txt", "r");
     int8_t bit_index = -1;
@@ -252,6 +229,7 @@ int main(void) {
     printf("%lu\n", eval_packet(p));
 
     /* bonus -- print AST */
+    /*
     printf(
         "(defun lt (a b) (if (< a b) 1 0))\n"
         "(defun gt (a b) (if (> a b) 1 0))\n"
@@ -259,6 +237,7 @@ int main(void) {
     );
     print_expr(p);
     printf("\n");
+    */
 
     return 0;
 }
