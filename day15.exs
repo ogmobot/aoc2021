@@ -96,3 +96,11 @@ IO.puts(grid |> Day15.dijkstra())
 
 # part 2
 IO.puts(grid |> Day15.embiggen(5) |> Day15.dijkstra())
+
+# The syntax of Elixir is somewhat reminiscent of OCaml (or maybe I'm just
+# overusing the |> operator). This program runs slowly on part 2 of the
+# problem; I'm sure I must be messing up Dijkstra somehow (either the sorting
+# key or the constant recasting of data into different types). I suspect both
+# of these issues could be fixed by using a priority queue, but I couldn't find
+# an implementation in the stdlib and couldn't find an easy way to download a
+# package implementation.
