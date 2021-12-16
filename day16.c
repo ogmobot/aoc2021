@@ -92,15 +92,9 @@ size_t parse_into_packet( /* returns number of bits parsed */
             amount_parsed += 3;
             if (stage == P_GETVERSION) {
                 dest->version = acc;
-#ifdef PARSEDEBUG
-                printf("dest->version is %lu\n", acc);
-#endif
                 stage = P_GETTYPE;
             } else { /* P_GETTYPE */
                 dest->type = acc;
-#ifdef PARSEDEBUG
-                printf("dest->type is %lu\n", acc);
-#endif
                 if (acc == T_LITERAL) {
                     stage = P_GETLITERAL;
                 } else {
@@ -115,9 +109,6 @@ size_t parse_into_packet( /* returns number of bits parsed */
             }
             break;
         case P_GETLITERAL:
-#ifdef PARSEDEBUG
-            printf("Getting literal...\n");
-#endif
             while (true) {
                 acc = 0;
                 for (int i = 0; i < 5; i++) {
@@ -128,9 +119,6 @@ size_t parse_into_packet( /* returns number of bits parsed */
                 dest->value = ((dest->value) << 4) + (acc & 0b1111);
                 if (!(acc & 0b10000)) break;
             }
-#ifdef PARSEDEBUG
-            printf("Literal = %lu\n", dest->value);
-#endif
             stage = P_DONE;
             break;
         case P_GETOPSIZE_11: {
@@ -141,17 +129,11 @@ size_t parse_into_packet( /* returns number of bits parsed */
                 acc = (acc << 1) + bit;
             }
             amount_parsed += 11;
-#ifdef PARSEDEBUG
-            printf("Getting %lu new packets...\n", acc);
-#endif
             struct packet *new_packets = calloc(sizeof(struct packet), acc);
             for (int i = 0; i < acc; i++) {
                 size_t res;
                 res = parse_into_packet(handle, new_packets + i, gotc, bit_index);
                 add_subpacket(dest, new_packets + i);
-#ifdef PARSEDEBUG
-                printf("Added subpacket (%lu bits).\n", res);
-#endif
                 amount_parsed += res;
             }
             stage = P_DONE;
@@ -165,22 +147,13 @@ size_t parse_into_packet( /* returns number of bits parsed */
                 acc = (acc << 1) + bit;
             }
             amount_parsed += 15;
-#ifdef PARSEDEBUG
-            printf("Getting %lu bits...\n", acc);
-#endif
             size_t res = 0;
             while (res < acc) {
                 struct packet *new_packet = calloc(sizeof(struct packet), 1);
                 res += parse_into_packet(handle, new_packet, gotc, bit_index);
                 add_subpacket(dest, new_packet);
-#ifdef PARSEDEBUG
-                printf("Added subpacket (%lu bits).\n", res);
-#endif
             }
             amount_parsed += res;
-#ifdef PARSEDEBUG
-            printf("Got %lu bits.\n", res);
-#endif
             if (res != acc) {
                 printf("WARNING! Too many bits!\n");
             }
