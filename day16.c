@@ -214,6 +214,29 @@ uint64_t eval_packet(struct packet *p) {
     return UINT64_MAX;
 }
 
+void print_expr(struct packet *p) {
+    if (p->type == T_LITERAL) {
+        printf("%lu", p->value);
+    } else {
+        printf("(");
+        switch (p->type) {
+        case T_SUM:     printf("+");   break;
+        case T_PRODUCT: printf("*");   break;
+        case T_MINIMUM: printf("MIN"); break;
+        case T_MAXIMUM: printf("MAX"); break;
+        case T_GREATER: printf(">");   break;
+        case T_LESS:    printf("<");   break;
+        case T_EQUAL:   printf("=");   break;
+        default:        printf("???"); break;
+        }
+        for (int i = 0; i < (p->top_subpacket); i++) {
+            printf(" ");
+            print_expr((p->subpackets)[i]);
+        }
+        printf(")");
+    }
+}
+
 int main(void) {
     FILE *input = fopen("input16.txt", "r");
     int8_t bit_index = -1;
@@ -221,11 +244,16 @@ int main(void) {
 
     struct packet *p = calloc(sizeof(struct packet), 1);
     parse_into_packet(input, p, &gotc, &bit_index);
+    fclose(input);
+
     /* part 1 */
     printf("%u\n", version_sum(p));
     /* part 2 */
     printf("%lu\n", eval_packet(p));
 
-    fclose(input);
+    /* bonus -- print AST */
+    print_expr(p);
+    printf("\n");
+
     return 0;
 }
