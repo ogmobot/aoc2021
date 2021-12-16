@@ -6,8 +6,9 @@
 /*** enums and structs ***/
 
 struct packet {
+    struct packet *sibling;
     union {
-        struct packet *subpackets[UINT8_MAX - 1];
+        struct packet *child;
         uint64_t value;
     };
     enum {
@@ -17,7 +18,6 @@ struct packet {
         T_LESS    = 6, T_EQUAL   = 7,
     } type;
     uint8_t version;
-    uint8_t top_subpacket;
 };
 
 struct bit_reader {
@@ -87,7 +87,9 @@ size_t parse_into_literal(struct bit_reader *r, uint64_t *dest) {
 }
 
 void add_subpacket(struct packet *dest, struct packet *sub) {
-    dest->subpackets[(dest->top_subpacket)++] = sub;
+    /* this prepends the list, so comparision tests will look odd */
+    sub->sibling = dest->child;
+    dest->child = sub;
 }
 
 size_t parse_into_packet(struct bit_reader *r, struct packet *dest) {
@@ -133,42 +135,43 @@ uint64_t eval_packet(struct packet *p) {
     switch (p->type) {
     case T_SUM:
         acc = 0;
-        for (int i = 0; i < (p->top_subpacket); i++)
-            acc += eval_packet((p->subpackets)[i]);
+        for (struct packet *q = p->child; q != (void *) 0; q = q->sibling)
+            acc += eval_packet(q);
         return acc;
     case T_PRODUCT:
         acc = 1;
-        for (int i = 0; i < (p->top_subpacket); i++)
-            acc *= eval_packet((p->subpackets)[i]);
+        for (struct packet *q = p->child; q != (void *) 0; q = q->sibling)
+            acc *= eval_packet(q);
         return acc;
     case T_MINIMUM:
-        if ((p->top_subpacket) == 0) printf("ERROR (T_MINIMUM)\n");
         acc = UINT64_MAX;
-        for (int i = 0; i < (p->top_subpacket); i++) {
-            uint64_t tmp = eval_packet((p->subpackets[i]));
+        for (struct packet *q = p->child; q != (void *) 0; q = q->sibling) {
+            uint64_t tmp = eval_packet(q);
             acc = (tmp < acc) ? tmp : acc;
         }
         return acc;
     case T_MAXIMUM:
-        if ((p->top_subpacket) == 0) printf("ERROR (T_MAXIMUM)\n");
         acc = 0;
-        for (int i = 0; i < (p->top_subpacket); i++) {
-            uint64_t tmp = eval_packet((p->subpackets[i]));
+        for (struct packet *q = p->child; q != (void *) 0; q = q->sibling) {
+            uint64_t tmp = eval_packet(q);
             acc = (tmp > acc) ? tmp : acc;
         }
         return acc;
     case T_LITERAL:
         return p->value;
     case T_GREATER:
-        if ((p->top_subpacket) != 2) printf("ERROR (T_GREATER)\n");
-        return eval_packet((p->subpackets)[0]) > eval_packet((p->subpackets)[1]);
     case T_LESS:
-        if ((p->top_subpacket) != 2) printf("ERROR (T_LESS)\n");
-        return eval_packet((p->subpackets)[0]) < eval_packet((p->subpackets)[1]);
-    case T_EQUAL:
-        if ((p->top_subpacket) != 2) printf("ERROR (T_EQUAL)\n");
-        return eval_packet((p->subpackets)[0]) == eval_packet((p->subpackets)[1]);
-    }
+    case T_EQUAL: {
+        struct packet *second = p->child;
+        struct packet *first  = second->sibling;
+        if (first->sibling != (void *) 0) printf("ERROR IN COMPARATOR\n");
+        switch (p->type) {
+        case T_GREATER: return eval_packet(first)  > eval_packet(second);
+        case T_LESS:    return eval_packet(first)  < eval_packet(second);
+        case T_EQUAL:   return eval_packet(first) == eval_packet(second);
+        default:        return UINT64_MAX;
+        }
+    }}
     /* This never happens */
     return UINT64_MAX;
 }
@@ -176,8 +179,10 @@ uint64_t eval_packet(struct packet *p) {
 uint32_t version_sum(struct packet *p) {
     uint32_t total = 0;
     total += (p->version);
-    for (int i = 0; i < (p->top_subpacket); i++) {
-        total += version_sum((p->subpackets)[i]);
+    if (p->type != T_LITERAL) {
+        for (struct packet *q = p->child; q != (void *) 0; q = q->sibling) {
+            total += version_sum(q);
+        }
     }
     return total;
 }
@@ -197,9 +202,9 @@ void print_expr(struct packet *p) {
         case T_EQUAL:   printf("EX");  break;
         default:        printf("???"); break;
         }
-        for (int i = 0; i < (p->top_subpacket); i++) {
+        for (struct packet *q = p->child; q != (void *) 0; q = q->sibling) {
             printf(" ");
-            print_expr((p->subpackets)[i]);
+            print_expr(q);
         }
         printf(")");
     }
@@ -227,7 +232,7 @@ int main(void) {
         "(defun gt (a b) (if (> a b) 1 0))\n"
         "(defun ex (a b) (if (= a b) 1 0))\n"
     );
-    print_expr(p);
+    print_expr(&p);
     printf("\n");
     */
 
