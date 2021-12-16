@@ -5,21 +5,17 @@
 
 /*** enums and structs ***/
 
-enum typeid_t {
-    T_SUM     = 0,
-    T_PRODUCT = 1,
-    T_MINIMUM = 2,
-    T_MAXIMUM = 3,
-    T_LITERAL = 4,
-    T_GREATER = 5,
-    T_LESS    = 6,
-    T_EQUAL   = 7,
-};
-
 struct packet {
-    struct packet *subpackets[UINT8_MAX - 1];
-    uint64_t value;
-    enum typeid_t type;
+    union {
+        struct packet *subpackets[UINT8_MAX - 1];
+        uint64_t value;
+    };
+    enum {
+        T_SUM     = 0, T_PRODUCT = 1,
+        T_MINIMUM = 2, T_MAXIMUM = 3,
+        T_LITERAL = 4, T_GREATER = 5,
+        T_LESS    = 6, T_EQUAL   = 7,
+    } type;
     uint8_t version;
     uint8_t top_subpacket;
 };
