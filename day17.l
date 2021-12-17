@@ -1,8 +1,5 @@
 #!/usr/bin/picolisp
 
-(de triangular (n)
-    (/ (* (+ n 1) n) 2))
-
 (de get-target (text)
     # minx maxx miny maxy
     (let (nums (mapcar '((x)
@@ -58,8 +55,23 @@
 (let (inputtext (in "input17.txt" (line)))
     (let (target (get-target inputtext))
         # part 1
-        (println (triangular (find-particle target 1 1)))
+        (println ('((n) (/ (* (+ n 1) n) 2)) (find-particle target 1 1)))
         # part 2
         (println (length (find-particle target 1 2)))))
 
 (bye)
+
+#{
+PicoLisp certainly feels... minimal. There don't seem to be any checks for
+the number of arguments passed to a function (omitted arguments evaluate to
+NIL), nor whether a symbol at the start of an S-expression evaluates to a
+function (attempting to eval a non-existant function segfaults). The
+requirement for T and NIL to be capitalised also tripped me up a few times
+-- symbols evaluate to themselves, and all non-NIL symbols are truthy, so
+`(if nil "true" "false")` evaluates to "true". Perhaps I should start every
+file with `(setq nil NIL) (setq t T)`...
+Other than the minimalism, it feels pretty close to other LISPs I've used.
+This program risks overflowing the stack for large inputs, since the
+`find-particle` function is a weird mix of recursive and iterative. I might
+have to rewrite that function to make this work with the big-boy input.
+}#
