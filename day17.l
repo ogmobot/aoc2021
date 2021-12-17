@@ -52,6 +52,14 @@
                         possibles
                         (find-particle target (+ 1 vx) 2)))))))
 
+(de t-bounds-y (u lower-coord upper-coord)
+    # u is initial velocity
+    # returns the upper and lower times for which particle can hit target
+    (de tr (x) (+ u 1 (sqrt (- (* u u) (* 2 x)))))
+    # need to find integers within this range... but picolisp rounds
+    # both values down to integers and doesn't really have floats :(
+    (range (tr lower-coord) (tr upper-coord)))
+
 (let (inputtext (in "input17.txt" (line)))
     (let (target (get-target inputtext))
         # part 1
