@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <malloc.h>
 
 /*** enums and structs ***/
@@ -74,7 +73,7 @@ uint64_t parse_bits_u64(struct bit_reader *r, int n) {
 size_t parse_into_literal(struct bit_reader *r, uint64_t *dest) {
     /* returns number of bits parsed */
     size_t amount_parsed = 0;
-    while (true) {
+    while (1) {
         uint8_t acc = 0;
         for (int i = 0; i < 5; i++) {
             acc = (acc << 1) + next_bit(r);
