@@ -1,4 +1,4 @@
-#!/usr/bin/picolisp
+#!/usr/bin/pil
 
 (de get-target (text)
     # minx maxx miny maxy
@@ -52,13 +52,39 @@
                         possibles
                         (find-particle target (+ 1 vx) 2)))))))
 
-(de t-bounds-y (u lower-coord upper-coord)
+(de lower-bound-t (u x)
+    (/ (+ 1 u u (sqrt (- (** (+ 1 u u) 2) (* 8 x)))) 2)) # helper function
+
+(de bounds-y (u lower-coord upper-coord)
     # u is initial velocity
-    # returns the upper and lower times for which particle can hit target
-    (de tr (x) (+ u 1 (sqrt (- (* u u) (* 2 x)))))
-    # need to find integers within this range... but picolisp rounds
-    # both values down to integers and doesn't really have floats :(
-    (range (tr lower-coord) (tr upper-coord)))
+    # returns a list of times for which particle can hit target
+    (filter
+        '((x) (let (middle (** (- (* 2 x) (+ 1 u u)) 2))
+            (and (>= (- (** (+ 1 u u) 2) (* lower-coord 8)) middle)
+                 (<= (- (** (+ 1 u u) 2) (* upper-coord 8)) middle))))
+        (range
+            (lower-bound-t u upper-coord)
+            (+ 1 (lower-bound-t u lower-coord)))))
+
+(de bounds-checker-x (u lower-coord upper-coord)
+    # returns a function f such that
+    # (f t) == T if this could hit x-coord of target at time t
+    #       == NIL otherwise
+    # (can't use ranges like y, because sometimes there's no upper limit)
+    (fill '((x)
+        (let (x-value
+            (if (<= u x)
+                (/ (* (+ u 1) u) 2)
+                (/ (- (* (+ 1 u u) x) (* x x)) 2)))
+            (and (<= lower-coord x-value)
+                 (>= upper-coord x-value))))
+        '(u lower-coord upper-coord)))
+
+# (lower-bound-t 0 -10) ~ 4
+# (lower-bound-t 0  -5) ~ 3
+# (bounds-y 2 -10 -5) == (7)
+# (bounds-y 3 -10 -5) == (9)
+# (bounds-y 0 -10 -5) == (4 5)
 
 (let (inputtext (in "input17.txt" (line)))
     (let (target (get-target inputtext))
@@ -67,7 +93,7 @@
         # part 2
         (println (length (find-particle target 1 2)))))
 
-(bye)
+#(bye)
 
 #{
 PicoLisp certainly feels... minimal. There don't seem to be any checks for
