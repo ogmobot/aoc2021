@@ -1,10 +1,6 @@
 #!/snap/bin/kotlin
 import java.io.File
 
-// Compilation instructions:
-// - compile with "kotlinc <in.kt> -include-runtime -d <out.jar>"
-// - run with "java -jar <out.jar>"
-
 class TreeNode() {
     var value: Int? = null // only leaves have value
     var depth: Int = 0
@@ -51,9 +47,9 @@ fun parseTree(s: String): TreeNode {
         var comma = -1
         s.forEachIndexed {index, c ->
             when (c) {
-            '[' -> {nested++}
-            ']' -> {nested--}
-            ',' -> {if (nested == 1) {comma = index}}
+                '[' -> nested++
+                ']' -> nested--
+                ',' -> {if (nested == 1) comma = index}
             }
         }
         result.leftChild = parseTree(s.substring(1, comma))
@@ -99,15 +95,9 @@ fun maybeExplode(root: TreeNode, tree: TreeNode): Boolean {
         tree.value = 0
         return true
     } else {
-        if (tree.leftChild == null || tree.rightChild == null) {
-            return false
-        }
-        if (maybeExplode(root, (tree.leftChild ?: TreeNode()))) {
-            return true
-        }
-        if (maybeExplode(root, (tree.rightChild ?: TreeNode()))) {
-            return true
-        }
+        if (tree.leftChild == null || tree.rightChild == null) return false
+        if (maybeExplode(root, (tree.leftChild ?: TreeNode()))) return true
+        if (maybeExplode(root, (tree.rightChild ?: TreeNode()))) return true
     }
     return false
 }
@@ -126,27 +116,17 @@ fun maybeSplit(tree: TreeNode): Boolean {
         tree.updateDepths()
         return true
     } else {
-        if (tree.leftChild == null || tree.rightChild == null) {
-            return false
-        }
-        if (maybeSplit(tree.leftChild ?: TreeNode())) {
-            return true
-        }
-        if (maybeSplit(tree.rightChild ?: TreeNode())) {
-            return true
-        }
+        if (tree.leftChild == null || tree.rightChild == null) return false
+        if (maybeSplit(tree.leftChild ?: TreeNode())) return true
+        if (maybeSplit(tree.rightChild ?: TreeNode())) return true
     }
     return false
 }
 
 fun reduceSnailfish(root: TreeNode): Boolean {
     // returns true if anything happened
-    if (maybeExplode(root, root)) {
-        return true
-    }
-    if (maybeSplit(root)) {
-        return true
-    }
+    if (maybeExplode(root, root)) return true
+    if (maybeSplit(root)) return true
     return false
 }
 
@@ -187,3 +167,14 @@ fun main() {
 }
 
 main()
+
+// I found Kotlin annoying to write in, but I think a big part of that was due
+// to my development environment (i.e. a slow compiler and having to spin up
+// the JVM each test). Despite the compiler being very pedantic about possible
+// nulls, it didn't seem to be very good at inferring any other types -- hence
+// needing to specify readLines() returns Strings, and using reduce {max(a, b)}
+// instead of MaxOrNull().
+// I've now written programs in a few JVM languages: Java (day 4), Scala (day
+// 12), Clojure (day 14) and Kotlin (day 18, today). (Technically, Raku can
+// also compile to JVM bytecode.) My ranking:
+// Scala > Clojure > Raku > Kotlin > Java
