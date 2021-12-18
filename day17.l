@@ -6,52 +6,6 @@
             (if (member x (chop "0123456789-")) x " ")) text))
         (mapcar format (filter '((x) x) (split nums " ")))))
 
-(de on-target? (particle target)
-    (let ((left-x right-x bottom-y top-y) target
-          (x y vx vy) particle)
-        (and
-            (<= x right-x) (>= x left-x)
-            (<= y top-y)   (>= y bottom-y))))
-
-(de dead? (particle target)
-    (let ((left-x right-x bottom-y top-y) target
-          (x y vx vy) particle)
-        (or
-            (> x right-x)
-            (< y bottom-y))))
-
-(de hits-target? (particle target)
-    (cond
-        ((dead?      particle target) NIL)
-        ((on-target? particle target)   T)
-        (T           (hits-target? (update particle) target))))
-
-(de update (particle)
-    (let ((x y vx vy) particle)
-    (list
-        (+ x vx)
-        (+ y vy)
-        (cond ((> vx 0) (- vx 1))
-              ((< vx 0) (+ vx 1))
-              (T        vx))
-        (- vy 1))))
-
-(de find-particle (target vx part?)
-    # part?=1: finds first vy-value that goes thru the target for any vx
-    # part?=2: finds all such vy-values
-    (let ((left-x right-x bottom-y top-y) target)
-        (if (<= vx right-x)
-            (let (possibles (filter
-                '((vy) (hits-target? (list 0 0 vx vy) target))
-                (range (abs bottom-y) (- (abs bottom-y)))))
-                (if (= part? 1)
-                    (if (= 0 (length possibles))
-                        (find-particle target (+ 1 vx) 1)
-                        (car possibles))
-                    (append
-                        possibles
-                        (find-particle target (+ 1 vx) 2)))))))
-
 (de lower-bound-t (u x)
     (/ (+ 1 u u (sqrt (- (** (+ 1 u u) 2) (* 8 x)))) 2)) # helper function
 
@@ -70,7 +24,7 @@
     # returns a function f such that
     # (f t) == T if this could hit x-coord of target at time t
     #       == NIL otherwise
-    # (can't use ranges like y, because sometimes there's no upper limit)
+    # (can't use ranges, because sometimes there's no upper limit)
     (fill '((x)
         (let (x-value
             (if (<= u x)
@@ -80,20 +34,40 @@
                  (>= upper-coord x-value))))
         '(u lower-coord upper-coord)))
 
-# (lower-bound-t 0 -10) ~ 4
-# (lower-bound-t 0  -5) ~ 3
-# (bounds-y 2 -10 -5) == (7)
-# (bounds-y 3 -10 -5) == (9)
-# (bounds-y 0 -10 -5) == (4 5)
+(de all-trajectories-y (target)
+    # returns a list of length (* 2 bottom-y).
+    # each element of the list is a range of pairs (time . uy)
+    (let ((left-x right-x bottom-y top-y) target)
+        (apply append (mapcar
+            '((uy)
+                (mapcar
+                    '((x) (cons uy x))
+                    (bounds-y uy bottom-y top-y)))
+            (range (- bottom-y) bottom-y)))))
 
-(let (inputtext (in "input17.txt" (line)))
-    (let (target (get-target inputtext))
-        # part 1
-        (println ('((n) (/ (* (+ n 1) n) 2)) (find-particle target 1 1)))
-        # part 2
-        (println (length (find-particle target 1 2)))))
+(de all-trajectories-x (target candidates)
+    # candidates is a list of pairs (uy . t)
+    # returns a list of pairs (ux . uy), with duplicates
+    (let ((left-x right-x bottom-y top-y) target)
+        (apply append (mapcar
+            '((ux)
+                (mapcar '((p) (cons ux (car p)))
+                    (filter
+                        '((p) ((bounds-checker-x ux left-x right-x) (cdr p)))
+                        candidates)))
+            (range 0 right-x)))))
 
-#(bye)
+(let (inputtext (in "input17.txt" (line))
+      target (get-target inputtext)
+      trajs  (uniq (all-trajectories-x target (all-trajectories-y target))))
+    # part 1
+    (println ('((n) (/ (* (+ n 1) n) 2)) (apply max (mapcar cdr trajs))))
+    # part 2
+    (println (length trajs)))
+
+# old implementation ~0.47 seconds
+# new implementation ~0.05 seconds
+(bye)
 
 #{
 PicoLisp certainly feels... minimal. There don't seem to be any checks for
@@ -105,7 +79,4 @@ requirement for T and NIL to be capitalised also tripped me up a few times
 `(if nil "true" "false")` evaluates to "true". Perhaps I should start every
 file with `(setq nil NIL) (setq t T)`...
 Other than the minimalism, it feels pretty close to other LISPs I've used.
-This program risks overflowing the stack for large inputs, since the
-`find-particle` function is a weird mix of recursive and iterative. I might
-have to rewrite that function to make this work with the big-boy input.
 }#
