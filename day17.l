@@ -55,7 +55,9 @@
                     (filter
                         '((p) ((bounds-checker-x ux left-x right-x) (cdr p)))
                         candidates)))
-            (range 0 right-x)))))
+            (range
+                (/ (- 1 (sqrt (+ 1 (* 8 left-x)))) 2)
+                right-x)))))
 
 (let (inputtext (in "input17.txt" (line))
       target (get-target inputtext)
