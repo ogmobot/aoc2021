@@ -1,155 +1,126 @@
 #!/snap/bin/kotlin
 import java.io.File
 
-class TreeNode() {
-    var value: Int? = null // only leaves have value
-    var depth: Int = 0
-    // if a tree has one of the following, it must have both
-    var leftChild:  TreeNode? = null
-    var rightChild: TreeNode? = null
-
-    fun updateDepths() {
-        leftChild?.depth = this.depth + 1
-        leftChild?.updateDepths()
-        rightChild?.depth = this.depth + 1
-        rightChild?.updateDepths()
-    }
-
-    fun isPair(): Boolean {
-        return (leftChild?.value != null && rightChild?.value != null)
-    }
-
-    override fun toString(): String {
-        if (value != null) {
-            return "${value}"
-        } else {
-            return "[${leftChild?.toString()},${rightChild?.toString()}]"
-        }
-    }
-
-    fun copy(): TreeNode {
-        var result = TreeNode()
-        result.value = value
-        result.depth = depth
-        result.leftChild = leftChild?.copy()
-        result.rightChild = rightChild?.copy()
-        return result
-    }
-}
-
-fun parseTree(s: String): TreeNode {
-    var result = TreeNode()
-    if (s.first().isDigit()) {
-        result.value = s.toInt()
-    } else {
-        // split into left part and right part
-        var nested = 0
-        var comma = -1
-        s.forEachIndexed {index, c ->
-            when (c) {
-                '[' -> nested++
-                ']' -> nested--
-                ',' -> {if (nested == 1) comma = index}
+fun parseTree(s: String): MutableList<Pair<Int, Int>> {
+    //<value, depth>
+    var result = mutableListOf<Pair<Int, Int>>()
+    var nested = 0
+    var index = 0
+    while (index < s.length) {
+        when (s[index]) {
+            '['  -> nested++
+            ']'  -> nested--
+            ','  -> {}
+            else -> {
+                val numLen = s.substring(index).indexOfFirst({c -> !c.isDigit()})
+                result.add(Pair(
+                    s.substring(index, index + numLen).toInt(),
+                    nested))
+                index += numLen - 1
             }
         }
-        result.leftChild = parseTree(s.substring(1, comma))
-        result.rightChild = parseTree(s.substring(comma + 1, s.length - 1))
-    }
-    result.updateDepths()
-    return result
-}
-
-fun getLeafList(tree: TreeNode?): ArrayList<TreeNode> {
-    // walk the tree and get a list of ordered nodes
-    var result = ArrayList<TreeNode>()
-    if (tree != null) {
-        if (tree.value != null) {
-            result.add(tree)
-        } else {
-            result.addAll(getLeafList(tree.leftChild))
-            result.addAll(getLeafList(tree.rightChild))
-        }
+        index++
     }
     return result
 }
-
-fun maybeExplode(root: TreeNode, tree: TreeNode): Boolean {
-    if (tree.isPair() && tree.depth >= 4) {
-        // this node explodes
-        val leaves = getLeafList(root)
-        val leftChild: TreeNode = tree.leftChild ?: TreeNode()
-        val leftChildIndex = leaves.indexOf(leftChild)
-        val rightChild: TreeNode = tree.rightChild ?: TreeNode()
-        val rightChildIndex = leaves.indexOf(rightChild)
-        // left value gets added to neighbour
-        if (leftChildIndex > 0) {
-            leaves[leftChildIndex - 1].value = (leaves[leftChildIndex - 1].value ?: 0) + (leftChild.value ?: 0)
+fun maybeExplode(n: MutableList<Pair<Int, Int>>): Boolean {
+    n.forEachIndexed { i, value ->
+        if (i == n.size - 1) return false
+        if (value.second == n[i + 1].second && value.second > 4) {
+            if (i > 0)
+                n.set(
+                    i - 1,
+                    Pair(n[i - 1].first + value.first, n[i - 1].second))
+            if (i + 1 < n.size - 1)
+                n.set(
+                    i + 2,
+                    Pair(n[i + 2].first + n[i + 1].first, n[i + 2].second))
+            n.removeAt(i + 1)
+            n.set(i, Pair(0, value.second - 1))
+            return true
         }
-        // right value gets added to neighbour
-        if (rightChildIndex < leaves.size - 1) {
-            leaves[rightChildIndex + 1].value = (leaves[rightChildIndex + 1].value ?: 0) + (rightChild.value ?: 0)
-        }
-        // this node becomes a 0
-        tree.leftChild = null
-        tree.rightChild = null
-        tree.value = 0
-        return true
-    } else {
-        if (tree.leftChild == null || tree.rightChild == null) return false
-        if (maybeExplode(root, (tree.leftChild ?: TreeNode()))) return true
-        if (maybeExplode(root, (tree.rightChild ?: TreeNode()))) return true
     }
     return false
 }
 
-fun maybeSplit(tree: TreeNode): Boolean {
-    if ((tree.value ?: 0) >= 10) {
-        // this node splits
-        val orig: Int = tree.value ?: 0
-        var leftChild = TreeNode()
-        leftChild.value = orig / 2
-        tree.leftChild = leftChild
-        var rightChild = TreeNode()
-        rightChild.value = (orig / 2) + (orig % 2)
-        tree.rightChild = rightChild
-        tree.value = null
-        tree.updateDepths()
-        return true
-    } else {
-        if (tree.leftChild == null || tree.rightChild == null) return false
-        if (maybeSplit(tree.leftChild ?: TreeNode())) return true
-        if (maybeSplit(tree.rightChild ?: TreeNode())) return true
+fun maybeSplit(n: MutableList<Pair<Int, Int>>): Boolean {
+    n.forEachIndexed { i, value ->
+        if (value.first >= 10) {
+            n.add(
+                i,
+                Pair(value.first / 2, value.second + 1))
+            n.set(
+                i + 1,
+                Pair((value.first / 2) + (value.first % 2), value.second + 1))
+            return true
+        }
     }
     return false
 }
 
-fun reduceSnailfish(root: TreeNode): Boolean {
+fun reduceSnailfish(n: MutableList<Pair<Int, Int>>): Boolean {
     // returns true if anything happened
-    if (maybeExplode(root, root)) return true
-    if (maybeSplit(root)) return true
+    if (maybeExplode(n)) return true
+    if (maybeSplit(n)) return true
     return false
 }
 
-fun addSnailfish(a: TreeNode, b: TreeNode): TreeNode {
-    var result = TreeNode()
-    result.leftChild = a.copy()
-    result.rightChild = b.copy()
-    result.updateDepths()
+fun addSnailfish(
+        a: MutableList<Pair<Int, Int>>,
+        b: MutableList<Pair<Int, Int>>
+): MutableList<Pair<Int, Int>> {
+    var result = (a.map { pair -> Pair(pair.first, pair.second + 1) }).toMutableList()
+    result += (b.map { pair -> Pair(pair.first, pair.second + 1) }).toMutableList()
     while (reduceSnailfish(result)) {}
     return result
 }
 
-fun magnitude(tree: TreeNode?): Int {
-    if (tree == null) {
+fun magnitude(n: MutableList<Pair<Int,Int>>): Int {
+    if (n.size == 0) {
         return 0
     } else {
-        return (tree.value ?:
-            (3 * magnitude(tree.leftChild)) + (2 * magnitude(tree.rightChild)))
+        return (3*n.first().first + 2*n.last().first)
     }
 }
 
+fun sf(n: MutableList<Pair<Int,Int>>): String {
+    var result = ""
+    var nested = 0
+    var i = 0
+    while (i < n.size) {
+        if (nested < n[i].second) {
+            result += "[ "
+            nested++
+            continue
+        }
+        if (nested > n[i].second) {
+            result += "] "
+            nested--
+            continue
+        }
+        if (nested == n[i].second) {
+            result += "${n[i].first.toString()} "
+            i++
+            continue
+        }
+    }
+    while (nested > 0) {
+        nested--;
+        result += "] "
+    }
+    return result
+}
+
 fun main() {
-    val input = File("input18.txt").readLines().map { line: String -> parseTree(line) }
+    //val input = File("input18.txt").readLines().map { line: String -> parseTree(line) }
+    val test_s = "[[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]]"
+    var tmp = parseTree(test_s)
+    println("${sf(tmp)}")
+    println("$tmp")
+    maybeExplode(tmp)
+    println("${sf(tmp)}")
+    println("$tmp")
+    /*
     // part 1
     val result = input.reduce { a, b -> addSnailfish(a, b) }
     println("${magnitude(result)}")
@@ -164,6 +135,7 @@ fun main() {
         }).reduce { x, y -> if (x > y) x else y }
     }).reduce { x, y -> if ( x > y) x else y }
     println("${maxSum}")
+    */
 }
 
 main()
