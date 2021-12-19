@@ -49,28 +49,25 @@ for i in countup(0, 23):
 
 func it_all_lines_up(probe_a: Probe, probe_b: Probe, b_facing: int, b_loc: Point): bool =
     #[
-    Asserts that if each point in probe_a is transformed, it matches probe_b.
+    Asserts that if each point in probe_b is transformed, it matches probe_a.
     There must be at least TOLERANCE points in common.
     ]#
     var beacon_count = 0
     for b in probe_b.beacons:
         let new_b = do_rotation(sub_points(b, b_loc), b_facing)
         # this is how the point in b *should* appear to probe a
-        if (new_b in probe_a.beacons):
+        if new_b in probe_a.beacons:
             beacon_count += 1
-            #if beacon_count >= TOLERANCE:
-                #return true
+            if beacon_count >= TOLERANCE:
+                return true
         else:
             for pl in probe_a.probelocs:
-                if in_range(pl, new_b):
-                    return false # should have seen this already
-        if beacon_count >= TOLERANCE:
-            return true
+                if in_range(pl, new_b): return false
     return false
 
 func line_up_probes(probe_a: Probe, probe_b: Probe): ProbeData =
     #[
-    Lines up two probes by finding TOLERANCE+ points in common.
+    Lines up two probes by finding TOLERANCE points in common.
     Returns the offset/facing of probe_b or [0, 0, 0], 0 on failure
     ]#
     for a in probe_a.beacons:
