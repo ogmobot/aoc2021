@@ -3,7 +3,7 @@ import std/sequtils
 import std/strutils
 
 const PROBE_RANGE = 1000
-const TOLERANCE = 12
+const TOLERANCE = 4
 
 type
     Point     = tuple[x, y, z: int]
