@@ -58,10 +58,14 @@ func it_all_lines_up(probe_a: Probe, probe_b: Probe, b_facing: int, b_loc: Point
         # this is how the point in b *should* appear to probe a
         if (new_b in probe_a.beacons):
             beacon_count += 1
-        #elif in_range((0, 0, 0), new_b) and (not (new_b in probe_a)):
-            #return false
-    if beacon_count >= TOLERANCE:
-        return true
+            #if beacon_count >= TOLERANCE:
+                #return true
+        else:
+            for pl in probe_a.probelocs:
+                if in_range(pl, new_b):
+                    return false # should have seen this already
+        if beacon_count >= TOLERANCE:
+            return true
     return false
 
 func line_up_probes(probe_a: Probe, probe_b: Probe): ProbeData =
@@ -102,9 +106,9 @@ proc merge_probe_list(raw_probes: seq[Probe]): Probe =
                             probes[i].probelocs + transformed.probelocs)
                         echo "Merged probes ", $i, " (len=", $probes[i].beacons.len, ") and ", $j, " (len=", $probes[j].beacons.len, ") (", $(probes.len - 1), " remaining) - megaprobe length ", megaprobe.beacons.len
                         # j > i guaranteed
-                        probes.delete(j)
-                        probes.delete(i) # .delete preserves order, .del doesn't
                         probes.add(megaprobe)
+                        probes.delete(j) # .delete preserves order
+                        probes.del(i)    # .del swaps last element to index i
                         break outer
             echo "Couldn't merge probes :("
             return (initHashSet[Point](), initHashSet[Point]())
