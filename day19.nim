@@ -105,7 +105,7 @@ proc merge_probe_list(raw_probes: seq[Probe]): Probe =
                         # j > i guaranteed
                         probes.add(megaprobe)
                         probes.delete(j) # .delete preserves order
-                        probes.del(i)    # .del swaps last element to index i
+                        probes.delete(i) # .del swaps last element to index i
                         break outer
             echo "Couldn't merge probes :("
             return (initHashSet[Point](), initHashSet[Point]())
