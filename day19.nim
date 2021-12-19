@@ -44,9 +44,8 @@ func do_unrotation(p: Point, i: int): Point =
     ][i]
 
 for i in countup(0, 23):
-    assert do_unrotation(do_rotation((1000, 200, 30), i), i) == (1000, 200, 30), $i
-    assert do_rotation(do_unrotation((1000, 200, 30), i), i) == (1000, 200, 30), $i
-
+    assert do_unrotation(do_rotation((1, 2, 3), i), i) == (1, 2, 3), $i
+    assert do_rotation(do_unrotation((1, 2, 3), i), i) == (1, 2, 3), $i
 
 func it_all_lines_up(probe_a: Probe, probe_b: Probe, b_facing: int, b_loc: Point): bool =
     #[
@@ -59,8 +58,6 @@ func it_all_lines_up(probe_a: Probe, probe_b: Probe, b_facing: int, b_loc: Point
         # this is how the point in b *should* appear to probe a
         if (new_b in probe_a.beacons):
             beacon_count += 1
-            #debugecho "old_b=", $b, " new_b=", $new_b, " is in probe_a"
-        # probe_a's location is 0, 0, 0
         #elif in_range((0, 0, 0), new_b) and (not (new_b in probe_a)):
             #return false
     if beacon_count >= TOLERANCE:
@@ -84,17 +81,14 @@ func transform_all_points(probe_b: Probe, b_loc: Point, b_facing: int): Probe =
     (probe_b.beacons.map(
         proc (b: Point): Point =
             do_rotation(sub_points(b, b_loc), b_facing)),
-    # facing data isn't transformed, but probably should be
     probe_b.probelocs.map(
         proc (loc: Point): Point =
             do_rotation(sub_points(loc, b_loc), b_facing)))
-            
 
 proc merge_probe_list(raw_probes: seq[Probe]): Probe =
     var probes = toSeq(raw_probes)
     # find matching pair
     while probes.len > 1:
-        #echo probes.map(proc (x: Probe): int = x.len)
         block outer:
             for i in countup(0, probes.len - 1):
                 for j in countup(i + 1, probes.len - 1):
@@ -102,14 +96,11 @@ proc merge_probe_list(raw_probes: seq[Probe]): Probe =
                     let trans = line_up_probes(probes[i], probes[j])
                     if trans != ((0, 0, 0), 0):
                         let (b_loc, b_facing) = trans
-                        #echo "b_loc=", $b_loc, " b_facing=", $b_facing
                         let transformed = transform_all_points(probes[j], b_loc, b_facing)
                         let megaprobe: Probe =
                             (probes[i].beacons + transformed.beacons,
                             probes[i].probelocs + transformed.probelocs)
                         echo "Merged probes ", $i, " (len=", $probes[i].beacons.len, ") and ", $j, " (len=", $probes[j].beacons.len, ") (", $(probes.len - 1), " remaining) - megaprobe length ", megaprobe.beacons.len
-                        #echo "megaprobe.beacons=", $megaprobe.beacons
-                        #echo "megaprobe.probelocs=", $megaprobe.probelocs
                         # j > i guaranteed
                         probes.delete(j)
                         probes.delete(i) # .delete preserves order, .del doesn't
@@ -161,18 +152,12 @@ proc get_probes(filename: string): seq[Probe] =
 ### main function ###
 
 proc main(): int {.discardable.} =
-    # each probe is represented by a set of ponits (the measurements it has taken)
     let probes = get_probes("input19.txt")
-    #let probes = @[raw_probes[0], raw_probes[1], raw_probes[4]]
     let (all_beacons, all_probes) =  merge_probe_list(probes)
     # part 1
     echo all_beacons.len
     # part 2
-    echo "probelocs=", $all_probes
-    #echo "\n\n", $all_beacons, "\n\n"
     echo greatest_manhattan(all_probes.toseq)
     return 0
 
 main()
-# 21446 is too high
-# 14147 is too low
