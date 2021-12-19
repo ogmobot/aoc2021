@@ -14,8 +14,8 @@ type
 
 ### program logic ###
 
-func add_points(a: Point, b: Point): Point =
-    (a[0] + b[0], a[1] + b[1], a[2] + b[2])
+#func add_points(a: Point, b: Point): Point =
+    #(a[0] + b[0], a[1] + b[1], a[2] + b[2])
 func sub_points(a: Point, b: Point): Point =
     (a[0] - b[0], a[1] - b[1], a[2] - b[2])
 func in_range(a: Point, b: Point): bool =
@@ -86,7 +86,7 @@ func transform_all_points(probe_b: Probe, b_loc: Point, b_facing: int): Probe =
         proc (loc: Point): Point =
             do_rotation(sub_points(loc, b_loc), b_facing)))
 
-proc merge_probe_list(raw_probes: seq[Probe]): Probe =
+func merge_probe_list(raw_probes: seq[Probe]): Probe =
     var probes = toSeq(raw_probes)
     # find matching pair
     while probes.len > 1:
@@ -101,13 +101,13 @@ proc merge_probe_list(raw_probes: seq[Probe]): Probe =
                         let megaprobe: Probe =
                             (probes[i].beacons + transformed.beacons,
                             probes[i].probelocs + transformed.probelocs)
-                        echo "Merged probes ", $i, " (len=", $probes[i].beacons.len, ") and ", $j, " (len=", $probes[j].beacons.len, ") (", $(probes.len - 1), " remaining) - megaprobe length ", megaprobe.beacons.len
+                        #debugecho "Merged probes ", $i, " (len=", $probes[i].beacons.len, ") and ", $j, " (len=", $probes[j].beacons.len, ") (", $(probes.len - 1), " remaining) - megaprobe length ", megaprobe.beacons.len
                         # j > i guaranteed
                         probes.add(megaprobe)
                         probes.delete(j) # .delete preserves order
                         probes.delete(i) # .del swaps last element to index i
                         break outer
-            echo "Couldn't merge probes :("
+            debugecho "Couldn't merge probes :("
             return (initHashSet[Point](), initHashSet[Point]())
     return probes[0]
 
@@ -154,6 +154,7 @@ proc get_probes(filename: string): seq[Probe] =
 
 proc main(): int {.discardable.} =
     let probes = get_probes("input19.txt")
+    # takes ~15s
     let (all_beacons, all_probes) =  merge_probe_list(probes)
     # part 1
     echo all_beacons.len
