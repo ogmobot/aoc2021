@@ -21,33 +21,18 @@ struct packet {
 
 struct bit_reader {
     FILE *handle;
-    char gotc;
+    uint8_t gotu8;
     int8_t bit_index;
 };
 
 /*** parsing functions ***/
 
-uint8_t hex_value(char mander) {
-    switch (mander) {
-    case '0': return   0; case '1': return   1;
-    case '2': return   2; case '3': return   3;
-    case '4': return   4; case '5': return   5;
-    case '6': return   6; case '7': return   7;
-    case '8': return   8; case '9': return   9;
-    case 'A': return 0xA; case 'B': return 0xB;
-    case 'C': return 0xC; case 'D': return 0xD;
-    case 'E': return 0xE; case 'F': return 0xF;
-    default: return UINT8_MAX;
-    }
-}
-
 uint8_t next_bit(struct bit_reader *r) {
     if ((r->bit_index) < 0) {
-        (r->bit_index) = 3;
-        (r->gotc) = fgetc(r->handle);
+        (r->bit_index) = 7;
+        fscanf(r->handle, "%2hhx", &(r->gotu8));
     }
-    if ((r->gotc) == (char) EOF) return (uint8_t) EOF;
-    return !!(hex_value(r->gotc) & (1 << ((r->bit_index)--)));
+    return !!((r->gotu8) & (1 << ((r->bit_index)--)));
 }
 
 uint8_t parse_bits_u8(struct bit_reader *r, int n) {
@@ -79,8 +64,8 @@ size_t parse_into_literal(struct bit_reader *r, uint64_t *dest) {
             acc = (acc << 1) + next_bit(r);
         }
         amount_parsed += 5;
-        *dest = ((*dest) << 4) + (acc & 0b1111);
-        if (!(acc & 0b10000)) break;
+        *dest = ((*dest) << 4) + (acc & 0x0F);
+        if (!(acc & 0x10)) break;
     }
     return amount_parsed;
 }
