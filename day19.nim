@@ -163,3 +163,11 @@ proc main(): int {.discardable.} =
     return 0
 
 main()
+
+#[
+I have mixed feelings about Nim. On the one hand, it's a Python-like
+language that's (potentially) much faster than Python. It's statically
+typed. It distinguishes between procedures that have side-effects and
+functions that don't. On the other hand, the fact that the language
+interprets foo_bar, foobar and fooBar as equivalent makes me nervous.
+]#
