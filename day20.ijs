@@ -11,12 +11,12 @@ wrapborder =: {{
 NB. x=gen y=grid. Assumes that '#' = 0 { IEA and '.' = 1 { IEA
 
 update_template =: {{
-    gen  =: 0{::({:y)
-    orig =: 1{::({:y)
-    size =: {.$orig
-    grid =: gen wrapborder orig
-    coords =: <@,"0/~>:i.size
-    neighbours =: grid {~ deltas +&.>/ coords
+    gen  =. 0{::({:y)
+    orig =. 1{::({:y)
+    size =. {.$orig
+    grid =. gen wrapborder orig
+    coords =. <@,"0/~>:i.size
+    neighbours =. grid {~ deltas +&.>/ coords
     y , (>:gen) ; (>:gen) wrapborder (|:(#.@('.#'i.])"1 |: neighbours) { x)
 }}
 NB. x=rules, y=world
