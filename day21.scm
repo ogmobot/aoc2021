@@ -18,24 +18,16 @@
 (define (player-step turn-number p die)
     (let* ((die-result (+ (die) (die) (die))) ;; it's German for "the the the"
            (position (remainder (+ (car p) die-result) 10)))
-        (cons
-            position
-            (+ (cdr p) position 1))))
+        (cons position (+ (cdr p) position 1))))
 
 (define (game-step turn-number die player-1 player-2)
     ;; each player is a cons pair (position . score).
     (let ((current-player-index (remainder turn-number 2)))
-        (list
-            (+ 1 turn-number)
-            die
-            ; player 1
+        (append
+            (list (+ 1 turn-number) die)
             (if (= 0 current-player-index)
-                (player-step turn-number player-1 die)
-                player-1)
-            ; player 2
-            (if (= 1 current-player-index)
-                (player-step turn-number player-2 die)
-                player-2))))
+                (list (player-step turn-number player-1 die) player-2)
+                (list player-1 (player-step turn-number player-2 die))))))
 
 (define (game-until-winner turn-number die player-1 player-2)
     (if (or (>= (cdr player-1) 1000) (>= (cdr player-2) 1000))
@@ -115,7 +107,6 @@
         (max p1wins p2wins)
         (apply multi-game-all
             (multi-player-step turn-number multiverse p1wins p2wins))))
-        
 
 ;;; main function
 
@@ -131,13 +122,11 @@
            (die (make-die))
            (state (list 0 die player-1 player-2)))
         (let ((final-state (apply game-until-winner state)))
-            ;(format #t "~a~%" final-state)
             (format #t "~a~%" (apply puzzle-result final-state))))
     ;; part 2
     (let ((multiverse (make-array 0 10 10 21 21))
           (player-1 (- p1start 1))
           (player-2 (- p2start 1)))
-        ;; arrays are passed by reference
         ;; (is it sacreligious to write stateful programes in scheme?)
         (array-set! multiverse 1 player-1 player-2 0 0)
         (let ((result (multi-game-all 0 multiverse 0 0)))
