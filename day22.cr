@@ -71,3 +71,10 @@ def main ( )
 end
 
 main
+
+# The Ruby-like syntax of Crystal is comfortable to write in, although it
+# sometimes makes me nervous to leave out the brackets that other languages
+# would require. Static typing and `@` sigil to identify class variables are
+# also nice features.
+# I wonder whether I should try to generalise the "sweep" functions to minimise
+# repetition. It's probably not worth it...
