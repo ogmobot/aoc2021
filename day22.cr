@@ -9,6 +9,7 @@ class Command
             @yrange = (m.["ymin"].to_i)..(m.["ymax"].to_i)
             @zrange = (m.["zmin"].to_i)..(m.["zmax"].to_i)
         else
+            raise "Error parsing line: #{s}"
             @on = false
             @xrange = 0..0
             @yrange = 0..0
@@ -21,28 +22,18 @@ class Command
             (x >= -50) && (x <= 50)
         }
     end
-end
-
-def part1( commands : Array(Command) ) : Int32
-    # naive algo: dump everything into a hash map
-    reactor = Hash(Tuple(Int32, Int32, Int32), Bool).new { false }
-    (commands.select { |x| x.valid_part1? }).each do |command|
-        command.xrange.each do |x|
-            command.yrange.each do |y|
-                command.zrange.each do |z|
-                    reactor[{x, y, z}] = command.on
-                end
-            end
-        end
+    def relevant? ( xval )
+        @xrange.includes? xval
     end
-    reactor.values.count { |x| x }
+    def relevant? ( xval, yval )
+        (@xrange.includes? xval) && (@yrange.includes? yval)
+    end
 end
 
 def lengthsweep ( xval : Int32, yval : Int32, commands : Array(Command) ) : Int64
-    relevant = commands.select { |x|
-        (x.xrange.includes? xval) && (x.yrange.includes? yval) }
+    relevant = commands.select &.relevant? xval, yval
     zvals = (
-        relevant.map { |x| x.zrange.begin } + commands.map { |x| x.zrange.end + 1 }
+        (relevant.map &.zrange.begin) + relevant.map { |com| com.zrange.end + 1 }
     ).sort
     length : Int64 = 0
     zvals.each_cons_pair do |zleft, zright|
@@ -51,27 +42,25 @@ def lengthsweep ( xval : Int32, yval : Int32, commands : Array(Command) ) : Int6
             length += (zright - zleft)
         end
     end
-    #puts "length=", length
     length
 end
 
-def areasweep( xval : Int32, commands : Array(Command) ) : Int64
-    relevant = commands.select { |x| x.xrange.includes? xval }
+def areasweep ( xval : Int32, commands : Array(Command) ) : Int64
+    relevant = commands.select &.relevant? xval
     yvals = (
-        relevant.map { |x| x.yrange.begin } + commands.map { |x| x.yrange.end + 1 }
+        (relevant.map &.yrange.begin) + relevant.map { |com| com.yrange.end + 1 }
     ).sort
     area : Int64 = 0
     yvals.each_cons_pair do |yleft, yright|
-        length = lengthsweep( xval, yleft, commands )
+        length = lengthsweep( xval, yleft, relevant )
         area += (length * (yright - yleft))
     end
-    #puts "area=", area
     area
 end
 
-def volumesweep( commands : Array(Command) ) : Int64
+def volumesweep ( commands : Array(Command) ) : Int64
     xvals = (
-        commands.map { |x| x.xrange.begin } + commands.map { |x| x.xrange.end + 1}
+        commands.map &.xrange.begin + commands.map { |com| com.xrange.end + 1 }
     ).sort
     volume : Int64 = 0
     xvals.each_cons_pair do |xleft, xright|
@@ -81,12 +70,12 @@ def volumesweep( commands : Array(Command) ) : Int64
     volume
 end
 
-def main()
+def main ( )
     input = File.read_lines("input22.txt").map do |line|
         Command.new line
     end
-    #puts part1 input
+    puts volumesweep input.select &.valid_part1?
     puts volumesweep input
 end
 
-main()
+main
