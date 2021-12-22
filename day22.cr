@@ -10,16 +10,16 @@ class Command
             @zrange = (m.["zmin"].to_i)..(m.["zmax"].to_i)
         else
             raise "Error parsing line: #{s}"
+            # set these anyway to help Crystal infer types
             @on = false
             @xrange = 0..0
             @yrange = 0..0
             @zrange = 0..0
         end
     end
-    def valid_part1? ()
-        [@xrange.begin, @yrange.begin, @zrange.begin,
-        @xrange.end, @yrange.end, @zrange.end].all? { |x|
-            (x >= -50) && (x <= 50)
+    def valid_part1? ( )
+        [ @xrange, @yrange, @zrange ].all? { |r|
+            [r.begin, r.end].all? { |x| x >= -50 && x <= 50 }
         }
     end
     def relevant? ( xval )
@@ -32,12 +32,10 @@ end
 
 def lengthsweep ( xval : Int32, yval : Int32, commands : Array(Command) ) : Int64
     relevant = commands.select &.relevant? xval, yval
-    zvals = (
-        (relevant.map &.zrange.begin) + relevant.map { |com| com.zrange.end + 1 }
-    ).sort
+    zvals = relevant.map &.zrange.begin + relevant.map &.zrange.end.succ
     length : Int64 = 0
-    zvals.each_cons_pair do |zleft, zright|
-        overlap = relevant.select { |x| x.zrange.includes? zleft }
+    zvals.sort.each_cons_pair do |zleft, zright|
+        overlap = relevant.select &.zrange.includes? zleft
         if overlap.size > 0 && overlap[-1].on
             length += (zright - zleft)
         end
@@ -47,11 +45,9 @@ end
 
 def areasweep ( xval : Int32, commands : Array(Command) ) : Int64
     relevant = commands.select &.relevant? xval
-    yvals = (
-        (relevant.map &.yrange.begin) + relevant.map { |com| com.yrange.end + 1 }
-    ).sort
+    yvals = relevant.map &.yrange.begin + relevant.map &.yrange.end.succ
     area : Int64 = 0
-    yvals.each_cons_pair do |yleft, yright|
+    yvals.sort.each_cons_pair do |yleft, yright|
         length = lengthsweep( xval, yleft, relevant )
         area += (length * (yright - yleft))
     end
@@ -59,11 +55,9 @@ def areasweep ( xval : Int32, commands : Array(Command) ) : Int64
 end
 
 def volumesweep ( commands : Array(Command) ) : Int64
-    xvals = (
-        commands.map &.xrange.begin + commands.map { |com| com.xrange.end + 1 }
-    ).sort
+    xvals = commands.map &.xrange.begin + commands.map &.xrange.end.succ
     volume : Int64 = 0
-    xvals.each_cons_pair do |xleft, xright|
+    xvals.sort.each_cons_pair do |xleft, xright|
         area = areasweep( xleft, commands )
         volume += (area * (xright - xleft))
     end
@@ -71,9 +65,7 @@ def volumesweep ( commands : Array(Command) ) : Int64
 end
 
 def main ( )
-    input = File.read_lines("input22.txt").map do |line|
-        Command.new line
-    end
+    input = File.read_lines("input22.txt").map { |line| Command.new line }
     puts volumesweep input.select &.valid_part1?
     puts volumesweep input
 end
