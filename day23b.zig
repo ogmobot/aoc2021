@@ -1,239 +1,317 @@
 const std = @import("std");
 const print = std.debug.print;
 const StateQueue = std.PriorityQueue(State, void, spent_less_than);
-const StateSet = std.AutoHashMap([@enumToInt(Space.NUM_SPACES)]u8, bool);
+const StateSet = std.AutoHashMap(SimpleState, bool);
 
 const input = @embedFile("input23.txt");
 
-const Space = enum {
-    HALLWAY_0,
-    HALLWAY_1,
-    HALLWAY_2, // not allowed part 1
-    HALLWAY_3,
-    HALLWAY_4, // not allowed part 1
-    HALLWAY_5,
-    HALLWAY_6, // not allowed part 1
-    HALLWAY_7,
-    HALLWAY_8, // not allowed part 1
-    HALLWAY_9,
-    HALLWAY_10,
-    HOME_A0,
-    HOME_A1, // A0 is bottom, A1 is top
-    HOME_B0,
-    HOME_B1,
-    HOME_C0,
-    HOME_C1,
-    HOME_D0,
-    HOME_D1,
-    NUM_SPACES,
+const Amphipod = struct {
+    letter: u8,
+    fn home(self: Amphipod) u8 {
+        return switch (self.letter) {
+            'A' => 2,
+            'B' => 4,
+            'C' => 6,
+            'D' => 8,
+            else => 255,
+        };
+    }
+};
 
-    fn is_hallway(self: Space) bool {
-        return switch (self) {
-            .HALLWAY_0, .HALLWAY_1, .HALLWAY_2, .HALLWAY_3, .HALLWAY_4, .HALLWAY_5, .HALLWAY_6, .HALLWAY_7, .HALLWAY_8, .HALLWAY_9, .HALLWAY_10 => true,
-            else => false,
-        };
-    }
-    fn is_home(self: Space) bool {
-        return switch (self) {
-            .HOME_A0, .HOME_A1, .HOME_B0, .HOME_B1, .HOME_C0, .HOME_C1, .HOME_D0, .HOME_D1 => true,
-            else => false,
-        };
-    }
-    fn blocks_doorway(self: Space) bool {
-        return self == Space.HALLWAY_2 or self == Space.HALLWAY_4 or self == Space.HALLWAY_6 or self == Space.HALLWAY_8;
-    }
+const SimpleState = struct {
+    hallway: [11]?Amphipod,
+    slots: [4][4]?Amphipod,
 };
 
 const State = struct {
-    spaces: [@enumToInt(Space.NUM_SPACES)]u8,
-    spent: u32,
-    fn stringrep(self: State) []u8 {
-        return self.spaces[0..];
+    hallway: [11]?Amphipod,
+    slots: [4][4]?Amphipod,
+    slot_depth: u8,
+    spent: usize,
+    num_moves: usize,
+    //history: [32][2]u8,
+    fn solved(self: State) bool {
+        var slot_index: usize = 0;
+        while (slot_index < 4) {
+            var depth_index: usize = 0;
+            while (depth_index < self.slot_depth) {
+                if (self.slots[slot_index][depth_index]) |a| {
+                    if (a.letter != 'A' + slot_index) {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+                depth_index += 1;
+            }
+            slot_index += 1;
+        }
+        return true;
+    }
+    fn get_amphi(self: State, index: usize) ?Amphipod {
+        if (blocks_door(index)) { // inside room
+            const slot_index = (index / 2) - 1;
+            var depth_index: usize = 0;
+            while (depth_index < self.slot_depth) {
+                if (self.slots[slot_index][depth_index]) |tmp| {
+                    return tmp;
+                }
+                depth_index += 1;
+            }
+            return null;
+        } else { // coming from hallway
+            return self.hallway[index];
+        }
+    }
+    fn render(self: State) void {
+        var hall_index: usize = 0;
+        while (hall_index <= 10) {
+            if (blocks_door(hall_index) or self.get_amphi(hall_index) == null) {
+                print(". ", .{});
+            } else {
+                print("{c} ", .{self.get_amphi(hall_index).?.letter});
+            }
+            hall_index += 1;
+        }
+        print("{any}\n", .{self.spent});
+        var depth_index: usize = 0;
+        while (depth_index < self.slot_depth) {
+            print("    ", .{});
+            var slot_index: usize = 0;
+            while (slot_index < 4) {
+                if (self.slots[slot_index][depth_index]) |a| {
+                    print("{c}   ", .{a.letter});
+                } else {
+                    print(".   ", .{});
+                }
+                slot_index += 1;
+            }
+            depth_index += 1;
+            print("\n", .{});
+        }
     }
 };
 
-fn get_initial_state(s: []const u8) State {
-    var result: State = undefined;
-    var index = @enumToInt(Space.HALLWAY_0);
-    while (index <= @enumToInt(Space.HALLWAY_10)) {
-        result.spaces[index] = '.';
-        index += 1;
-    }
-    result.spaces[@enumToInt(Space.HOME_A0)] = s[45];
-    result.spaces[@enumToInt(Space.HOME_B0)] = s[47];
-    result.spaces[@enumToInt(Space.HOME_C0)] = s[49];
-    result.spaces[@enumToInt(Space.HOME_D0)] = s[51];
-    result.spaces[@enumToInt(Space.HOME_A1)] = s[31];
-    result.spaces[@enumToInt(Space.HOME_B1)] = s[33];
-    result.spaces[@enumToInt(Space.HOME_C1)] = s[35];
-    result.spaces[@enumToInt(Space.HOME_D1)] = s[37];
-    result.spent = 0;
-    return result;
-}
-
-// bfs the state space
-
-fn connected(a: Space, b: Space) bool {
-    return switch (a) {
-        .HALLWAY_0 => (b == .HALLWAY_1),
-        .HALLWAY_1 => ((b == .HALLWAY_0) or (b == .HALLWAY_2)),
-        .HALLWAY_2 => ((b == .HALLWAY_1) or (b == .HALLWAY_3) or (b == .HOME_A1)),
-        .HALLWAY_3 => ((b == .HALLWAY_2) or (b == .HALLWAY_4)),
-        .HALLWAY_4 => ((b == .HALLWAY_3) or (b == .HALLWAY_5) or (b == .HOME_B1)),
-        .HALLWAY_5 => ((b == .HALLWAY_4) or (b == .HALLWAY_6)),
-        .HALLWAY_6 => ((b == .HALLWAY_5) or (b == .HALLWAY_7) or (b == .HOME_C1)),
-        .HALLWAY_7 => ((b == .HALLWAY_6) or (b == .HALLWAY_8)),
-        .HALLWAY_8 => ((b == .HALLWAY_7) or (b == .HALLWAY_9) or (b == .HOME_D1)),
-        .HALLWAY_9 => ((b == .HALLWAY_8) or (b == .HALLWAY_10)),
-        .HALLWAY_10 => (b == .HALLWAY_9),
-        .HOME_A1 => ((b == .HALLWAY_2) or (b == .HOME_A0)),
-        .HOME_A0 => (b == .HOME_A1),
-        .HOME_B1 => ((b == .HALLWAY_4) or (b == .HOME_B0)),
-        .HOME_B0 => (b == .HOME_B1),
-        .HOME_C1 => ((b == .HALLWAY_6) or (b == .HOME_C0)),
-        .HOME_C0 => (b == .HOME_C1),
-        .HOME_D1 => ((b == .HALLWAY_8) or (b == .HOME_D0)),
-        .HOME_D0 => (b == .HOME_D1),
-        else => false,
-    };
-}
-
-fn cost(identity: u8, distance: i32) u32 {
-    const res = switch (identity) {
-        'A' => distance,
-        'B' => 10 * distance,
-        'C' => 100 * distance,
-        'D' => 1000 * distance,
-        else => 0,
-    };
-    return @bitCast(u32, res);
-}
-
-fn distance_to(from: Space, to: Space, state: State, visited: u64) i32 {
-    // returns -1 if impossible
-    // for this scenario, bfs == dfs
-    if (from == to) return 0;
-    if (state.spaces[@enumToInt(to)] != '.') return -1;
-    var index = @enumToInt(Space.HALLWAY_0);
-    while (index < @enumToInt(Space.NUM_SPACES)) {
-        if (connected(@intToEnum(Space, index), from)) {
-            if (0 == (visited & (@as(u64, 1) << index))) {
-                const tmp = distance_to(@intToEnum(Space, index), to, state, (visited | (@as(u64, 1) << @enumToInt(from))));
-                if (tmp != -1) return (tmp + 1);
-            }
-        }
-        index += 1;
-    }
-    return -1;
-}
-
-fn allowed_move(from: Space, to: Space, state: State) bool {
-    // amphipods won't stop outside doors
-    // amphipods in the hallway can only move into their own room
-    // amphipods can't move into a room containing a foreign amphipod
-    if (from == to) return false;
-    const identity: u8 = state.spaces[@enumToInt(from)];
-    if (from.is_hallway()) {
-        switch (to) {
-            .HOME_A0 => return identity == 'A',
-            .HOME_A1 => return identity == 'A' and state.spaces[@enumToInt(Space.HOME_A0)] != 0,
-            .HOME_B0 => return identity == 'B',
-            .HOME_B1 => return identity == 'B' and state.spaces[@enumToInt(Space.HOME_B0)] != 0,
-            .HOME_C0 => return identity == 'C',
-            .HOME_C1 => return identity == 'C' and state.spaces[@enumToInt(Space.HOME_C0)] != 0,
-            .HOME_D0 => return identity == 'D',
-            .HOME_D1 => return identity == 'D' and state.spaces[@enumToInt(Space.HOME_D0)] != 0,
-            else => return false,
-        }
-    } else if (from.is_home()) {
-        return (!to.blocks_doorway());
-    } else {
-        return false;
-    }
-}
-
-fn next_moves(possible_moves: *StateQueue, seen_states: *StateSet) !void {
-    // pulls the front state from the queue and finds next possible moves,
-    // adding them to the queue.
-    const current = possible_moves.remove();
-    var index: u8 = 0;
-    while (index < @enumToInt(Space.NUM_SPACES)) { // from
-        if (current.spaces[index] == '.') {
-            index += 1;
-            continue;
-        }
-        var subindex: u8 = 0;
-        while (subindex < @enumToInt(Space.NUM_SPACES)) { // to
-            if (current.spaces[subindex] != '.') {
-                subindex += 1;
-                continue;
-            }
-            if (allowed_move(@intToEnum(Space, index), @intToEnum(Space, subindex), current)) {
-                const distance = distance_to(@intToEnum(Space, index), @intToEnum(Space, subindex), current, 0);
-                if (distance != -1) {
-                    var new_state = current;
-                    new_state.spent += cost(new_state.spaces[index], distance);
-                    new_state.spaces[subindex] = new_state.spaces[index];
-                    new_state.spaces[index] = '.';
-                    if (seen_states.get(new_state.spaces)) |val| {
-                        _ = val;
-                    } else {
-                        try seen_states.put(new_state.spaces, true);
-                        try possible_moves.add(new_state);
-                    }
-                }
-            }
-            subindex += 1;
-        }
-        index += 1;
-    }
-    return;
-}
-
-fn winning_state(state: State) bool {
-    if (state.spaces[@enumToInt(Space.HOME_A0)] == 'A' and state.spaces[@enumToInt(Space.HOME_A1)] == 'A') {
-        if (state.spaces[@enumToInt(Space.HOME_B0)] == 'B' and state.spaces[@enumToInt(Space.HOME_B1)] == 'B') {
-            if (state.spaces[@enumToInt(Space.HOME_C0)] == 'C' and state.spaces[@enumToInt(Space.HOME_C1)] == 'C') {
-                if (state.spaces[@enumToInt(Space.HOME_D0)] == 'D' and state.spaces[@enumToInt(Space.HOME_D1)] == 'D') {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
+// locations:
+// 0 1 2 3 4 5 6 7 8 9 10
+//     A   B   C   D
+//     A   B   C   D
 
 fn spent_less_than(context: void, a: State, b: State) std.math.Order {
     _ = context;
     return std.math.order(a.spent, b.spent);
 }
 
+fn num_moves_less_than(context: void, a: State, b: State) std.math.Order {
+    _ = context;
+    return std.math.order(a.num_moves, b.num_moves);
+}
+
+fn move_cost(a: Amphipod, from_loc: usize, to_loc: usize) usize {
+    // only calculate cost to move to home door
+    const multiplier = switch (a.letter) {
+        'A' => 1,
+        'B' => 10,
+        'C' => 100,
+        'D' => 1000,
+        else => @as(usize, 0),
+    };
+    var distance: usize = undefined;
+    if (from_loc > to_loc) {
+        distance = from_loc - to_loc;
+    } else {
+        distance = to_loc - from_loc;
+    }
+    return multiplier * distance;
+}
+
+fn move_options(from_loc: usize, state: State) [11]bool {
+    var result = [_]bool{false} ** 11;
+    const tmp = state.get_amphi(from_loc);
+    if (tmp) |a| {
+        if (blocks_door(from_loc)) { // currently in a room
+            // can only move if not at home or there's a foreign amphi beneath this one
+            var foreign = false;
+            const slot_index = (a.home() / 2) - 1;
+            for (state.slots[slot_index]) |item| {
+                if (item != null and item.?.letter != a.letter) {
+                    foreign = true;
+                    break;
+                }
+            }
+            if (foreign or slot_index != from_loc) {
+                var space: usize = 0;
+                while (space <= 10) {
+                    if ((!blocks_door(space)) and clear_path(from_loc, space, state)) result[space] = true;
+                    space += 1;
+                }
+            }
+            return result;
+        } else { // currently in hallway
+            // check there's a way back to the door
+            if (clear_path(from_loc, a.home(), state)) {
+                // check we're allowed to go there
+                var depth_index = state.slot_depth;
+                while (depth_index > 0) {
+                    depth_index -= 1;
+                    const tmp_a = state.slots[(a.home() / 2) - 1][depth_index];
+                    if (tmp_a == null) {
+                        result[a.home()] = true;
+                        break;
+                    } else if (tmp_a.?.letter != a.letter) {
+                        result[a.home()] = false;
+                        break;
+                    }
+                }
+            }
+            return result;
+        }
+    }
+    return result;
+}
+
+fn clear_path(from: usize, to: usize, state: State) bool {
+    var current = from;
+    while (current != to) {
+        if (current < to) {
+            current += 1;
+        } else {
+            current -= 1;
+        }
+        if (state.hallway[current] != null) return false;
+    }
+    return true;
+}
+
+fn blocks_door(index: usize) bool {
+    switch (index) {
+        2, 4, 6, 8 => return true,
+        else => return false,
+    }
+}
+
+fn solve(possible_moves: *StateQueue, seen_states: *StateSet) !usize {
+    possible_moves.peek().?.render();
+    //var counter: usize = 0;
+    while (possible_moves.len > 0) {
+        const popped = possible_moves.removeOrNull();
+        //print("{any}\n", .{popped});
+        if (popped == null) {
+            print("No solution found (exhausted queue).\n", .{});
+        } else if (popped.?.solved()) {
+            print("{any}\n", .{popped});
+            popped.?.render();
+            return popped.?.spent;
+        }
+        const current = popped.?;
+        //current.render();
+        //counter += 1;
+        //if (counter % 10000 == 0) {
+        //print("{any}\n", .{counter});
+        //current.render();
+        //print("  q length: {any}\n", .{possible_moves.len});
+        //print("  spent:    {any}\n", .{current.spent});
+        //print("  moves:    {any}\n", .{current.num_moves});
+        //}
+        if (seen_states.get(.{ .hallway = current.hallway, .slots = current.slots }) == null) {
+            try seen_states.put(.{ .hallway = current.hallway, .slots = current.slots }, true);
+        } else {
+            continue;
+        }
+        var from_loc: usize = 0;
+        while (from_loc <= 10) {
+            const opts = move_options(from_loc, current);
+            for (opts) |can_move, to_loc| {
+                if (can_move) {
+                    const a = current.get_amphi(from_loc).?;
+                    var new_state = current;
+                    var new_a = a;
+                    if (blocks_door(to_loc)) {
+                        // push into slot
+                        var depth_index = new_state.slot_depth - 1;
+                        while (new_state.slots[(new_a.home() / 2) - 1][depth_index] != null) {
+                            depth_index -= 1;
+                        }
+                        new_state.slots[(new_a.home() / 2) - 1][depth_index] = new_a;
+                        new_state.hallway[from_loc] = null;
+                        new_state.spent += move_cost(a, 0, depth_index + 1);
+                    } else {
+                        // move into hallway
+                        new_state.hallway[to_loc] = new_a;
+                        var depth_index: usize = 0;
+                        const slot_index = (from_loc / 2) - 1;
+                        while (new_state.slots[slot_index][depth_index] == null) {
+                            depth_index += 1;
+                        }
+                        new_state.slots[slot_index][depth_index] = null;
+                        new_state.spent += move_cost(a, 0, depth_index + 1);
+                    }
+                    new_state.spent += move_cost(a, from_loc, to_loc);
+                    //new_state.history[new_state.num_moves][0] = @intCast(u8, from_loc);
+                    //new_state.history[new_state.num_moves][1] = @intCast(u8, to_loc);
+                    new_state.num_moves += 1;
+                    try possible_moves.add(new_state);
+                }
+            }
+            from_loc += 1;
+        }
+    }
+    print("No solution found.\n", .{});
+    return 0;
+}
+
+fn get_initial_state(s: []const u8) State {
+    var result: State = undefined;
+    result.slot_depth = 2;
+    const magic_numbers = [8]usize{ 31, 33, 35, 37, 45, 47, 49, 51 };
+    for (magic_numbers) |val, i| {
+        result.slots[i % 4][i / 4] = .{ .letter = s[val] };
+    }
+    result.hallway = [_]?Amphipod{null} ** 11;
+    result.spent = 0;
+    result.num_moves = 0;
+    return result;
+}
+
+fn part2ify(orig: State) State {
+    var result = orig;
+    result.slot_depth = 4;
+    for ([_]u8{ 0, 1, 2, 3 }) |i| {
+        result.slots[i][3] = result.slots[i][1];
+    }
+    for ("DCBA") |c, i| {
+        result.slots[i][1] = .{ .letter = c };
+    }
+    for ("DBAC") |c, i| {
+        result.slots[i][2] = .{ .letter = c };
+    }
+    return result;
+}
+
 pub fn main() !void {
+    // part 1
     const initial_state = get_initial_state(input);
 
     var allocator = std.heap.page_allocator;
     var possible_moves = StateQueue.init(allocator, {});
-    try possible_moves.add(initial_state);
-
-    // part 1
+    defer possible_moves.deinit();
     var seen_states = StateSet.init(allocator);
-    var counter: u32 = 0;
-    while (possible_moves.peek()) |state| {
-        if (winning_state(state)) {
-            print("{any}\n", .{state.spent});
-            return;
-        } else {
-            //print("{any}\n", .{state.spent});
-            counter += 1;
-            if (counter % 10000 == 0) {
-                print("Step {any}\n", .{counter});
-                print("  (spent up to {any})\n", .{state.spent});
-            }
-            try next_moves(&possible_moves, &seen_states);
-        }
-    }
-    print("No solution found!\n", .{});
+    defer seen_states.deinit();
+
+    try possible_moves.add(initial_state);
+    const result = solve(&possible_moves, &seen_states) catch |err| return err;
+    print("{any}\n", .{result});
+
+    // part 2
+    var part2_state = part2ify(get_initial_state(input));
+    while (possible_moves.len > 0) _ = possible_moves.remove();
+    seen_states.clearRetainingCapacity();
+
+    try possible_moves.add(part2_state);
+    const result_2 = solve(&possible_moves, &seen_states) catch |err| return err;
+    print("{any}\n", .{result_2});
     return;
 }
 
-// 25233 is not the right answer
+// 8641 is too low
+// 26951 is too high
