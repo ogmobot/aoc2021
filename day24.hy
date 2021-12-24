@@ -2,12 +2,12 @@
 (require [hy.extra.anaphoric [*]])
 (setv substitute hy.extra.anaphoric.recur-sym-replace)
 
-(setv input-symbol ((fn []
-    ;(setv val 0)
-    (while True
-        ;(yield 1)))))
-        (yield 'digit)))))
-        ;(yield-from ['digit0 'digit1 'digit2 'digit3 'digit4 'digit5 'digit6 'digit7 'digit8 'digit9 'digit10 'digit11 'digit12 'digit13])
+(defn d-iter []
+    (iter ['d0  'd1  'd2  'd3  'd4  'd5  'd6
+           'd7  'd8  'd9 'd10 'd11 'd12 'd13]))
+(defn z-iter []
+    (iter ['z0  'z1  'z2  'z3  'z4  'z5  'z6
+           'z7  'z8  'z9 'z10 'z11 'z12 'z13]))
 
 (defn base26 [x]
     ; string rep in b26
@@ -50,13 +50,13 @@
                     [True expr]))]
           [True expr]))
 
-(defn update-state [state line]
+(defn update-state [state line d-symbols]
     ;; mutates state into new state, with w, x, y, z as s-expressions
     (setv parts (.split (.strip line)))
     (setv new-expression
         (maybe-simplify
             (if (= (get parts 0) "inp")
-                (next input-symbol)
+                (next d-symbols)
                 `(
                     ~(get
                         {"add" '+ "mul" '* "div" '// "mod" '% "eql" '=}
@@ -68,7 +68,7 @@
     (assoc state (get parts 1) new-expression))
 
 (defn find-allowed-values [expr targets]
-    ;; returns possible pairs of digit, z (below 100) that allow expr
+    ;; returns possible pairs of d, z (below 100) that allow expr
     ;; to reach one of the targets
     (setv solutions [])
     (for [digit (range 9 0 -1)]
@@ -110,15 +110,14 @@
         (setv lines (.readlines f)))
     (setv z-expressions [])
     (setv state {"w" 0 "x" 0 "y" 0 "z" 0})
+    (setv z-symbols (z-iter))
+    (setv d-symbols (d-iter))
     (for [line lines]
-        (update-state state line)
+        (update-state state line d-symbols)
         (if (.startswith line "inp")
             (do
-                (.append z-expressions (get state "z"))
-                (setv state {"w" (get state "w") "x" 'x "y" 'y "z" 'z}))))
-    (.append z-expressions (get state "z"))
-    (interact z-expressions))
-    ;(for [expr z-expressions]
-        ;(print (hy.repr expr))))
+                (print (hy.repr (get state "z")))
+                (assoc state "z" (next z-symbols)))))
+    (print (hy.repr (get state "z"))))
 
 (main)
