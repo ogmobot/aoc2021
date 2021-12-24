@@ -254,3 +254,12 @@ pub fn main() !void {
     print("{any}\n", .{result_2});
     return;
 }
+
+// Tough puzzle. I struggled finding a good way to represent the data.
+// (Would it have been easier to store the whole thing as a list of strings?)
+// Zig feels very C-like. It makes it very easy to solve problems in the same
+// way as you could in C, but with nice features like error unions, easier
+// memory management, optional types and a nice big standard library.
+// (That said, I don't think my solution to this problem is terribly elegant.
+// It's basically Dijkstra-ing the space of all possible moves, using an
+// annoying implementation of state.)
