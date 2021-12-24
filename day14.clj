@@ -1,4 +1,4 @@
-#!/usr/bin/clojure
+#!/usr/bin/env clojure
 (require '[clojure.string :as str])
 
 (defn dofreqsubs [fstable pairfreqs]

@@ -1,5 +1,4 @@
-#!/usr/bin/scala
-!#
+#!/usr/bin/env scala
 import scala.io.Source
 
 def find_connections(pairs: List[List[String]], a: String): List[String] =

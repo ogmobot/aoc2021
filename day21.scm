@@ -1,4 +1,4 @@
-#!/usr/bin/guile
+#!/usr/bin/env guile
 ;!#
 (use-modules (ice-9 textual-ports))
 (use-modules (ice-9 format))

@@ -1,4 +1,4 @@
-#!/usr/bin/julia
+#!/usr/bin/env julia
 
 function adjs(n, dims)
     # returns indices that are adjacent to n

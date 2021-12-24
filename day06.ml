@@ -1,4 +1,4 @@
-#!/usr/bin/ocaml
+#!/usr/bin/env ocaml
 let count x xs = List.fold_left
     (fun counter elt -> if (elt == x) then counter+1 else counter)
     0

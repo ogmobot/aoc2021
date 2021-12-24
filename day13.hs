@@ -1,4 +1,4 @@
-#!/usr/bin/runhaskell
+#!/usr/bin/env runhaskell
 import System.IO
 import Data.List.Split
 import Data.List

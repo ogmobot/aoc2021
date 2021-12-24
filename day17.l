@@ -1,4 +1,4 @@
-#!/usr/bin/pil
+#!/usr/bin/env pil
 
 (de get-target (text)
     # minx maxx miny maxy

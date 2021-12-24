@@ -1,4 +1,4 @@
-#!/usr/bin/ijconsole
+#!/usr/bin/env ijconsole
 
 deltas =: ,<@,"0/~i:1
 NB. ORDER MATTERS

@@ -1,4 +1,4 @@
-#!/usr/local/bin/apl --script
+#!/usr/bin/env -S apl --script
 
 input ← ⍎⎕FIO[49]'input01.txt'
 

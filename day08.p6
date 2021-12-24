@@ -1,4 +1,4 @@
-#!/usr/bin/rakudo
+#!/usr/bin/env rakudo
 
 sub mapcombine (%a, %b) {
     %().append(%a).append(%b);

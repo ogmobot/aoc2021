@@ -1,4 +1,4 @@
-#!/snap/bin/kotlin
+#!/usr/bin/env kotlin
 import java.io.File
 
 class TreeNode() {

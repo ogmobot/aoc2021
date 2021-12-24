@@ -1,4 +1,4 @@
-#!/usr/bin/elixir
+#!/usr/bin/env elixir
 
 defmodule Day15 do
     def makegrid(lines) do

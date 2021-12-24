@@ -1,4 +1,4 @@
-#!/snap/bin/crystal
+#!/usr/bin/env crystal
 
 class Command
     property on, xrange, yrange, zrange
