@@ -13,7 +13,7 @@
     ; string rep in b26
     (setv result "")
     (while (> x 0)
-        (setv result (+ result (get "abcdefghijklmnopqrstuvwxyz" (% x 26))))
+        (setv result (+ (get "abcdefghijklmnopqrstuvwxyz" (% x 26)) result))
         (setv x (// x 26)))
     result)
 
@@ -79,19 +79,18 @@
     ;; mutates state into new state, with w, x, y, z as s-expressions
     (setv parts (.split (.strip line)))
     (setv new-expression
-        (cond-simplify
-            (maybe-simplify
-                (if (= (get parts 0) "inp")
-                    (next d-symbols)
-                    `(
-                        ~(get
-                            {"add" '+ "mul" '* "div" '// "mod" '% "eql" '=}
-                            (get parts 0))
-                        ~(get state (get parts 1))
-                        ~(if (in (get parts 2) "wxyz")
-                            (get state (get parts 2))
-                            (int (get parts 2)))))
-                {})))
+        (maybe-simplify
+            (if (= (get parts 0) "inp")
+                (next d-symbols)
+                `(
+                    ~(get
+                        {"add" '+ "mul" '* "div" '// "mod" '% "eql" '=}
+                        (get parts 0))
+                    ~(get state (get parts 1))
+                    ~(if (in (get parts 2) "wxyz")
+                        (get state (get parts 2))
+                        (int (get parts 2)))))
+            {}))
     (assoc state (get parts 1) new-expression))
 
 (defn find-allowed-values [expr targets]
@@ -119,8 +118,7 @@
     (for [[d expr d-symbol z-symbol] (zip digits z-exprs (d-iter) (z-iter))]
         (setv res (hy.eval (substitute {d-symbol d z-symbol z} expr)))
         (.append result res)
-        (setv z res)
-        (print "z" z))
+        (setv z res))
     result)
 
 (defn interact [z-exprs]
@@ -143,10 +141,23 @@
         (update-state state line d-symbols)
         (if (.startswith line "inp")
             (do
-                (print (hy.repr (get state "z")))
+                (.append z-expressions (cond-simplify (get state "z")))
                 (assoc state "z" (next z-symbols)))))
-    (print (hy.repr (get state "z"))))
+    (.append z-expressions (cond-simplify (get state "z")))
+    (setv z-expressions (list (rest z-expressions)))
+    (for [expr z-expressions]
+        (print (hy.repr expr))))
+    ;(interact z-expressions))
+
+;;; This is looking a lot nicer now. Work backwards from the printed statements
+;;; to get
+;;; (e.g. from (if (= (+ (% z13 26) -1) d13)
+;;;                 (// z13 26)
+;;;                 (+ (* (// z13 26) 26) (+ d13 15))))
+;;; to "d13 must equal (+ (% z13 26) -1) == last digit z13 - 1"
+
+;;; Or, using interact mode, make the last letter of each string match up
 
 (main)
 
-;(print (hy.repr (cond-simplify `(+ (= a b) (+ (* ~5 (= a b)) ~1)))))
+;;; It *looks* like I'm writing Lisp, but it *feels* like I'm writing Python.
