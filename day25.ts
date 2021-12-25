@@ -34,7 +34,7 @@ function move_south(grid: Array<string>): Array<string> {
     return result.map((arr) => arr.join(""));
 }
 
-fs.readFile("input25.txt", "utf8", (err, data: string) => {
+fs.readFile("input25.txt", "utf8", (err: object, data: string) => {
     if (err) {
         return;
     }
@@ -53,3 +53,12 @@ fs.readFile("input25.txt", "utf8", (err, data: string) => {
     console.log(counter);
     //console.log(grid);
 });
+
+/*
+I can see how JavaScript got so popular as a scripting tool, and also why
+Microsoft felt the need to develop TypeScript on top of it. JavaScript's logic
+for implicity converting between types can lead to some weird interactions,
+    [ e.g. ('b'+'a'+ +'a'+'a').toLowerCase() === 'banana' ]
+and a way to automatically detect that nothing's too out of whack goes a long
+way towards avoiding unexpected results like this.
+*/
