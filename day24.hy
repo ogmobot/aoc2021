@@ -17,11 +17,28 @@
         (setv x (// x 26)))
     result)
 
-(defn maybe-simplify [expr]
-    (cond [(= (type expr) bool) (if expr 1 0)]
+(defn deepest-= [expr]
+    ; finds a (= a b) expression that contains no other such expressions
+    (if (= (type expr) hy.models.Expression)
+        (do 
+            (setv deepest-left (deepest-= (get expr 1)))
+            (setv deepest-right (deepest-= (get expr 2)))
+            (if (and (= (get expr 0) '=)
+                     (= deepest-left None)
+                     (= deepest-right None))
+                expr
+                (if (= deepest-left None)
+                    deepest-right
+                    deepest-left)))
+        None))
+
+(defn maybe-simplify [expr bindings]
+    (cond [(in expr bindings) (get bindings expr)]
+          [(= (type expr) bool) (if expr 1 0)]
           [(= (type expr) hy.models.Expression)
-            (do (setv a (maybe-simplify (get expr 1)))
-                (setv b (maybe-simplify (get expr 2)))
+            (do (setv a (maybe-simplify (get expr 1) bindings))
+                (setv b (maybe-simplify (get expr 2) bindings))
+                ;(print "a=" (hy.repr a) "b=" (hy.repr b))
                 (cond
                     [(and (= (type a) int) (= (type b) int))
                         (hy.eval `(~(get expr 0) ~a ~b))]
@@ -46,25 +63,35 @@
                     [(= '= (get expr 0))
                         (if (= (type a) (type b) int)
                             (if (= a b) 1 0)
-                                `(= ~a ~b))]
+                            `(= ~a ~b))]
                     [True expr]))]
           [True expr]))
+
+(defn cond-simplify [expr]
+    (setv deepest (deepest-= expr))
+    (if deepest
+        `(if ~deepest
+            ~(maybe-simplify expr {deepest 1})
+            ~(maybe-simplify expr {deepest 0}))
+        expr))
 
 (defn update-state [state line d-symbols]
     ;; mutates state into new state, with w, x, y, z as s-expressions
     (setv parts (.split (.strip line)))
     (setv new-expression
-        (maybe-simplify
-            (if (= (get parts 0) "inp")
-                (next d-symbols)
-                `(
-                    ~(get
-                        {"add" '+ "mul" '* "div" '// "mod" '% "eql" '=}
-                        (get parts 0))
-                    ~(get state (get parts 1))
-                    ~(if (in (get parts 2) "wxyz")
-                        (get state (get parts 2))
-                        (int (get parts 2)))))))
+        (cond-simplify
+            (maybe-simplify
+                (if (= (get parts 0) "inp")
+                    (next d-symbols)
+                    `(
+                        ~(get
+                            {"add" '+ "mul" '* "div" '// "mod" '% "eql" '=}
+                            (get parts 0))
+                        ~(get state (get parts 1))
+                        ~(if (in (get parts 2) "wxyz")
+                            (get state (get parts 2))
+                            (int (get parts 2)))))
+                {})))
     (assoc state (get parts 1) new-expression))
 
 (defn find-allowed-values [expr targets]
@@ -89,8 +116,8 @@
 (defn sub-all-digits [z-exprs digits]
     (setv z 0)
     (setv result [])
-    (for [[d expr] (zip digits z-exprs)]
-        (setv res (hy.eval (substitute {'digit d 'z z} expr)))
+    (for [[d expr d-symbol z-symbol] (zip digits z-exprs (d-iter) (z-iter))]
+        (setv res (hy.eval (substitute {d-symbol d z-symbol z} expr)))
         (.append result res)
         (setv z res)
         (print "z" z))
@@ -121,3 +148,5 @@
     (print (hy.repr (get state "z"))))
 
 (main)
+
+;(print (hy.repr (cond-simplify `(+ (= a b) (+ (* ~5 (= a b)) ~1)))))
