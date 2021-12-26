@@ -165,3 +165,77 @@ I know there's probably a nice way of finding the next left-or-right leaf given 
 **Kotlin**: A Python-wannabe for the JVM.
 
 **Syntax Highlight**: `?:` (the "Elvis" operator [look at it sideways] -- the right operand provides a default value for when the left operand is null)
+
+Day 19: Nim
+-----------
+Nim's syntax feels very Python-esque, which I'm sure was an intentional decision. I like the distinction the language makes between (pure) `func`tions and `proc`edures, and of course the language, being both typed and compiled, tends to produce much faster programs than Python. Would I use it instead of Python? Well... maybe. Right now, Python interpreters are much more widespread than Nim compilers. I'm also a little leery of Nim ignoring underscores and capitalisation in symbol names. Still, I like the language, and I imagine it'd be very easy for a Python programmer to learn.
+
+My method for solving the day 19 problem is dumb brute force -- I doubt I would have got away with this so easily if I had used an interpreted language. It might be possible to get a big speedup by computing the vectors or triangles associated with each point cloud, and matching those under rotation, instead of simply trying to match every possible pair of points.
+
+**Nim**: Python but fast.
+
+**Syntax Highlight**: `a_Bc` (symbol names ignore underscores, capitalisation and whitespace [yes, you can write symbol names that contain whitespace])
+
+Day 20: J
+---------
+Despite the relative brevity of this program, it's very verbose for the standards of J. I've seen another J program which solves this problem in about 6 lines; my program is a few times bigger than that. There are, no doubt, a tonne of built-in words I could have used instead of defining my own. I also kept track of all states of the universe instead of just one -- I could probably shorten my code and runtime simultaneously by changing that.
+
+Apparently a lot of the people solving this problem initially got tripped up by the fact that rules[0] == 1 and rules[511] == 0, but this was literally the first thing I checked after getting the input. (In fact, my program assumes this will be the case and won't correcty run the example input).
+
+**J**: APL for people with normal keyboards.
+
+**Syntax Highlight**: `:^` (applies a function *n* times; or determines and applies the inverse function, if *n* is negative; or finds a fixed point of the function, if *n* is infinity!)
+
+Day 21: Guile Scheme
+--------------------
+The third LISP I used for the event. In retrospect it might have been better to use something else; it feels almost sacreligious to be constantly mutating state in LISP. There's probably a nice way to get a functional solution to the problem, but I didn't look for one very hard. I figured you don't get very many opportunities to use four-dimensional arrays in Advent of Code, so that's what I used to get my solution. In looking through my solution to this problem, I've discovered this was the one language I forgot to write comments about in the program file itself. This is fine; it seems like a pretty standard LISP.
+
+**Guile Scheme**: It's just LISP.
+
+**Syntax Highlight**: `set!` (functions that mutate state conventionally end with `!` to warn you)
+
+Day 22: Crystal
+---------------
+Perhaps ironically, I'm currently more familiar with Crystal than with Ruby. The syntax (and lack of parentheses) is nice, albeit a little confusing sometimes. I was unreasonably pleased to discover integers have a `.succ` method, meaning I could replace `.map { |x| -> x.zrange.end + 1 }` with a mere `.map &.zrange.end.succ`. I'm pretty sure Ruby's syntax was the first to use `|` to name locally-scoped variables in `for` loops and the like, so that's a nice feature.
+
+The line-sweep (plane-sweep?) algorithm to solve this problem was one I had heard of before, but not implemented. I suspect there's a way to combine my `lengthsweep` and `areasweep` functions into one, so that not as much code is duplicated. (Also, I originally wrote a dumb solution for part 1 which was just "dump everything into a hash map", knowing full well I'd have to implement a real solution to part 2 anyway.)
+
+**Crystal**: Ruby but fast.
+
+**Syntax Highlight**: `|x|` (names the variable used in a block, as in `(0..10).each do |val| ... end`)
+
+Day 23: Zig
+-----------
+One last "better version of C" language. Writing in Zig definitely feels a lot like writing in C, except it's a lot better at memory safety (while also not being super pedantic about it). It has a big standard library, optional types, bounds-checked arrays, and the compiler literally has a C compiler built in. If you wanted to write a program which needed to inter-operate with a lot of C source files or objects, Zig would probably be a good choice of language. That said, the language is still a work-in-progress; the last time I wrote in Zig, I was using version 0.7.0; but since then, I've updated to 0.9.0, and a few things have changed. (I'm still writing to stderr instead of stdout, though...) One of my favourite features is the syntax for assigning values to structs.
+
+**Zig**: A version of C with optional types.
+
+**Syntax Highlight**: `.{}` (an empty struct that matches the type of the variable you're assigning it to)
+
+Day 24: Hy
+----------
+One last LISP language. Wait a second, this doesn't feel like LISP! Isn't this... Python?
+
+Hy shares a more syntax with Clojure than with other LISPs I've used (square brackets for function args, curly braces for hash maps), and of course it has the parentheses and quotes that LISP is so well known for. But it really doesn't feel like LISP! Perhaps it's the use of dot methods and functions that I'm so used to (just in a different order -- `(.append xs x)` instead of `xs.append(x)`), or maybe I know at some level that the whole thing's running on top of CPython, but it really does *feel* like writing Python.
+
+When analysing this problem myself, I uncovered a lot of clues leading towards a solution: the fourteen chunks of assembly, seven of one type and seven of another; division, multiplication and modulo all of 26; the fact that the `z` register represented and stored the assembly program's internal state; but I couldn't work out how it was all connected. I wrote a program to represent the states of all registers as S-expressions, but they got hopelessly complicated after a few hundred steps. (That said, a LISP seems like the perfect kind of language to try this with.)
+
+Finally, I took a peek for hints online and saw someone mention a stack, and then it all fell into place. I solved the problem relatively quickly afterwards, by writing a quick-and-dirty program that ran the assembly and printed the operands of every comparison to a non-zero number (since these were the only pairs of numbers that needed to match to get the solution). After a bit of trial and error, and manually changing trial digits in the source code of the program, I found the puzzle's solution.
+
+Since then, I've been trying to get the first version of the program to solve the problem with S-expressions. (I haven't succeeded yet, at time of writing, but I'm close!) The comments of that version of the program show how to solve the problem analytically given the S-expressions emitted by the program. Hopefully one day I'll automate the process.
+
+**Hy**: I can't believe it's not Python!
+
+**Syntax Highlight**: `hy.eval` (Python already has a native `eval` function -- which Hy has access to! -- so the function that evaluates an S-expression needs a slightly different name)
+
+Day 25: TypeScript
+------------------
+I'm not convinced that TypeScript is a real language. It's more like a type-checking system -- an *optional* type-checking system, at that! -- for JavaScript programs. Ah well.
+
+The ecosystem required to set up TypeScript took a bit of fiddling to get right, and "compiling" the TypeScript to JavaScript (actually just stripping type annotations) is rather slow; but the language itself is pretty inoffensive. For this problem, I represented the input as an array of strings, where I probably could have used a 2-dimensional array of strings or a single string; but hey, it worked in the end.
+
+I can see why returning `null` or `undefined` or `Infinity` or whatever would be useful when running JavaScript in a user's browser and you don't want everything to blow up, but it makes it kind of annoying to track down errors in the program itself.
+
+**TypeScript**: It's a typechecking system for JavaScript that takes more than 5 seconds to check less than 50 lines of code (well done, Microsoft).
+
+**Syntax Highlight**: `===` (checks whether two values are *actually* equal -- because JavaScript's default equality operator, `==`, silently and implicitly coerces its arguments to have the same type)
