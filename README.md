@@ -18,7 +18,7 @@ The day 2 puzzle itself was pretty straightforward, although I've seen programs 
 
 **Factor**: A nice introduction to stack-based languages. (GForth for 2022???)
 
-**Syntax Highlight**: `( -- )` (function signature, showing what data the function removes or adds to the stack)
+**Syntax Highlight**: `( ... -- ... )` (a function's stack signature, showing what data it adds to or removes from the stack)
 
 Day 03: FORTRAN
 ---------------
@@ -28,7 +28,7 @@ The puzzle itself was a little annoying but I managed to hack out an answer with
 
 **FORTRAN**: You recognise its grandkids so well that you feel you've known it your whole life.
 
-**Syntax Highlight**: `rewind(11)` (reset file position; I suspect older versions of FORTRAN literally rewound an input tape)
+**Syntax Highlight**: `rewind(...)` (reset file position; I suspect older versions of FORTRAN literally rewound an input tape)
 
 Day 04: Java
 ------------
@@ -55,5 +55,61 @@ My method of solving part 1 of this puzzle turned out to be the "optimised" vers
 **OCaml**: Functional programming like never before.
 
 **Syntax Highlight**: `|>` ("pipes" the result of one function into another)
+
+Day 07: Rust
+------------
+Another "better version of C" language. I feel like my solution to this problem is not the way that Rust was designed to be written! Perhaps this style of program (i.e. composition of many methods) is the result of having learned OCaml the day before. Still, it seems like a pretty neat solution to me, all things considered. The importance that Rust places on memory safety and correctness means that many methods produce results with an error union type (i.e. either a value of that type, or `null`) -- you have to call `.unwrap()` to extract the actual value you want.
+
+I've seen it pointed out that the solution to part 1 is guaranteed to be within one unit of the median of the given numbers, and the solution to part 2 is guaranteed to be within one unit of their arithmetic mean. (I've also read rumours that the input is a valid Intcode program...)
+
+**Rust**: A version of C with methods and memory safety.
+
+**Syntax Highlight**: `.unwrap()` (call this on the result of a method to get the value it returned)
+
+Day 08: Raku
+------------
+Aka Perl 6. One of the most distinctive features of Raku (and Perl) is the sigils preceding each variable; `$` for a single value, `@` for an array, `%` for a map, `&` for, uh, a subroutine? While the sigils make it easier to track the types of each variable, they certainly make the language look confusing from a distance. The language has C-like syntax and is pretty straightforward to write in. I can see how Perl got to be such a popular language for scripting.
+
+This puzzle was a nice one. I figured out how the segments for each digit related to each other on the train home from work.
+
+**Raku**: A scripting language for when your `$@%&` keys aren't getting enough use.
+
+**Syntax Highlight**: `$_` (the argument passed to an anonymous function -- an anonymous argument?)
+
+Day 09: Go
+----------
+Aka Golang. The fourth "better version of C" language I used. I didn't like this language as much as I thought I would. Unlike a lot of the other C-like languages, Go doesn't introduce function methods as a way of modifying data. Hence, we have `xs = append(xs, x)` instead of `xs.append(x)`, and we have `strings.Trim(line, "\n")` instead of line.trim("\n"). The one feature I found was pretty interesting was the idea of channels, which allow coroutines to communicate with each other (or "goroutines", as the language prefers to call them). If I had to write a program with lots of parallel parts, I don't think Go would be the worst choice. That said, I also don't think it would be my first choice.
+
+**Go**: A version of C with support for parallelism.
+
+**Syntax Highlight**: `<-` (write to a channel with `ch <- data` or read from a channel with `data = (<- ch)`)
+
+Day 10: C++
+-----------
+The fifth "better version of C" language I used. Its standard libraries have so many different types! My solution used `std::map`, `std::vector`, `std::stack`, `std::string` and `std::ifstream`, to say nothing of the constants and functions included in the libraries. C programs are, in theory, compatible with C++; but I discovered while writing this program that the languages have diverged at least a little bit. The values defined within an `enum` can be used without qualifiers in C, but require namespace identifiers in C++.
+
+C++ is supposedly such a big language that most good C++ programmers use only a tiny fraction of the language. I suspect that just knowing what functions are in the standard library, and how to use them, would make it possible to hack together complex programs very quickly.
+
+**C++**: A version of C with objects, templates, and a huge standard library.
+
+**Syntax Highlight**: `std::endl` (the standard library is so extensive it includes a standard end-of-line character)
+
+Day 11: Julia
+-------------
+Julia's syntax reminds me of the syntax of Lua and other scripting languages, but it tends to run much faster than those. Apparently it has a keyword to call subroutines from C or FORTRAN shared libraries, which makes sense if its primary goal is numerical processing. I've read that there are some issues with the language implementation (and perhaps some of the language's community), but luckily I didn't encounter any in my solution.
+
+I used a one-dimensional array to represent two-dimensional data in this problem, and probably should have taken the time to learn Julia's syntax for multidimensional arrays.
+
+**Julia**: For when you need FORTRAN but you'd rather write Python.
+
+**Syntax Highlight**: `@time` (annotates a function call and measures how long the call takes)
+
+Day 12: Scala
+-------------
+I was surprised at how much I enjoyed writing Scala. In some ways it feels a bit like OCaml (immutable data, pattern matching). It seems to have taken a lot of good ideas from other langauges and put them together; we have anonymous functions and variables, advanced pattern-matching, method composition (which I admittedly went a bit overboard on), tail-call optimisation and static typing. I'd like to use this language more in the future.
+
+**Scala**: A collage of good ideas.
+
+**Syntax Highlight**: `def f() = ...` (defining a function has the same syntax as assigning a variable)
 
 
