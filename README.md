@@ -112,4 +112,56 @@ I was surprised at how much I enjoyed writing Scala. In some ways it feels a bit
 
 **Syntax Highlight**: `def f() = ...` (defining a function has the same syntax as assigning a variable)
 
+Day 13: Haskell
+---------------
+I've written a little bit of Haskell in the past, but I forgot how pedantic the compiler is. I suspect the syntax was originally inspired by ML-like languages, given it shares some similarities with OCaml. Technically, writing a signature for every function wasn't necessary, but it helped me to keep track of what each function was doing. The hardest part of writing this program was taking the results of the *nasty, impure* input routines and feeding them into my *shining, pure* functions. I got there in the end, but it was a bit of a struggle. Haskell's lazy evaluation also meant I couldn't really test the functions until I got output working, but the type system helped to pre-emptively squash bugs.
 
+**Haskell**: Pure functional programming (with, *sigh*, a bridge to the impure real world included).
+
+**Syntax Highlight**: `f :: a -> a -> a` (function signatures with arbitrary types, currying by default)
+
+Day 14: Clojure
+---------------
+The first LISP I used for the event. Clojure is a dialect of LISP with some syntax choices that differentiate it from more traditional LISPs -- stuff like `[]` for vectors, `{}` for hash tables, and `#(%)` for anonymous functions and arguments. I discovered it came witha  lot of handy functions right out of the box, like `merge-with`, `frequencies` and `partition`. Apparently tail-call optimisation isn't possible for Clojure, but it uses a tail-call-like combination of `loop` and `recur` to achieve a similar effect. I'm not sure I'd use Clojure over Common Lisp, but I wouldn't hesitate to recommend it to, say, someone working with the JVM and looking to branch out.
+
+**Clojure**: A batteries-included LISP for the JVM.
+
+**Syntax Highlight**: `recur` (a band-aid for the language's lack of tail-call optimisation)
+
+Day 15: Elixir
+--------------
+Elixir is apparently built on top of BEAM, the virtual machine for Erlang (which I've never used). Using modules to encapsulate different functions and variables is a neat idea, which I'd probably appreciate even more if I ever wrote something that needed them. We see the return the `|>` operator previously seen in OCaml, and I really liked the destructuring bind within function arguments (as seen in e.g. `def neighbours({x, y}, size)`).
+
+**Elixir**: Probably a good option for concurrency.
+
+**Syntax Highlight**: `defmodule` (modules group functions together)
+
+Day 16: C
+---------
+Good old C. Given the input required parsing bits at a time, this seemed like an appropriate language to use. The problem itself practically demanded I used the fixed-width integer types of `<stdint.h>`, but I'd like to be in the habit of always using them anyway.
+
+This problem is basically parsing and evaluating a compressed abstract syntax tree. Given LISPs deal entirely with ASTs, I thought it fitting to add a function that would emit a LISP program that evaluates the tree. Perhaps one day I'll re-implement this program in a LISP so I can call `eval` directly...
+
+**C**: The *lingua franca* of programming languages (and hella fast).
+
+**Syntax Highlight**: `void *` (a memory location not associated with a type -- use with extreme care)
+
+Day 17: PicoLisp
+----------------
+The second LISP I used for the event. This is a very minimalist implementation of LISP. It's so minimal it doesn't check whether symbols are valid function names (if not, segfault) it doesn't check whether a function's been passed enough arguments (default value is NIL), and it doesn't support arrays or floating-point numbers (really!). Other than that, the language is a pretty decent, standard LISP. One unusual feature is using `quote` instead of `lambda`; so where Common Lisp would have `(mapcar (lambda (x) (f x)) xs)`, PicoLisp instead has `(mapcar '((x) (f x)) xs)`. Doesn't really feel very different to write, but it saves some space.
+
+I used a fair bit of Maths on this problem to get a solution that runs fast. The lack of floating-point numbers (and my refusal to get fixpoint numbers working) made it a bit tough.
+
+**PicoLisp**: A LISP in one megabyte or less.
+
+**Syntax Highlight**: `NIL` (PicoLisp is case-sensitive, so `NIL`, a special, false-y value, is not the same as `nil`, an ordinary, truth-y value; this tripped me up a few times)
+
+Day 18: Kotlin
+--------------
+I wanted to like Kotlin, but I didn't enjoy it as much as I thought I would. Maybe it was the difficult problem I was trying to solve, or the slow compiler, or just rolling my own object class. There's nothing wrong with the language, *per se*; the syntax is familiar, it has static typing etc.; but its insistence on type safety made the slow process of solving the problem slower than I would have liked.
+
+I know there's probably a nice way of finding the next left-or-right leaf given a specific leaf node, but I found it easier to just walk the tree and store the leaves in an array. It means the operation is O(n) instead of O(log n) but that wasn't a problem for an input this size.
+
+**Kotlin**: A Python-wannabe for the JVM.
+
+**Syntax Highlight**: `?:` (the "Elvis" operator [look at it sideways] -- the right operand provides a default value for when the left operand is null)
