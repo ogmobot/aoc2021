@@ -7,7 +7,7 @@
            'd7  'd8  'd9 'd10 'd11 'd12 'd13]))
 (defn z-iter []
     (iter ['z0  'z1  'z2  'z3  'z4  'z5  'z6
-           'z7  'z8  'z9 'z10 'z11 'z12 'z13]))
+           'z7  'z8  'z9 'z10 'z11 'z12 'z13 'z14]))
 
 (defn deepest-= [expr]
     ; finds a (= a b) expression that contains no other such expressions
@@ -110,6 +110,80 @@
                     ~(maybe-simplify expr {deepest 0}))))
         expr))
 
+(defn quotient-remainder [expr divisor]
+    ;; Simplifies one of two kinds of expression
+    ;;   (+ (* a divisor) b) => returns [a b]
+    ;;   d => returns [0 a]
+    ;; Otherwise returns None.
+    (if (and (= (type expr) hy.models.Expression)
+             (= (get expr 0) '+)
+             (= (type (get expr 1)) hy.models.Expression)
+             (= (get (get expr 1) 0) '*)
+             (= (get (get expr 1) 2) divisor))
+        [(get (get expr 1) 1) (get expr 2)]
+        (if (in expr (list (d-iter)))
+            [0 expr]
+            None)))
+
+(defn div-simplify [expr]
+    ;; simplifies (// a b) or (% a b) by evaluating (quotient-remainder a b)
+    (if (= (type expr) hy.models.Expression)
+        (do
+            (setv qr (quotient-remainder (get expr 1) (get expr 2)))
+            (cond
+                [(= qr None) expr]
+                [(= (get expr 0) '//) (get qr 0)]
+                [(= (get expr 0) '%)  (get qr 1)]
+                [True expr]))
+        expr))
+
+(defn simplify-constraint [expr]
+    ;; tries to simplify a constraint using div-simplify
+    ;; makes assumptions about the input!
+    (if (= (type expr) hy.models.Expression)
+        (do (setv a (get expr 1)
+                  b (get expr 2))
+            (cond
+                [(= (get a 0) '+)
+                    (if (= (get b 0) '+)
+                        ;; subtract the smallest operand from both sides
+                        (do (setv +a (get a 2)
+                                  +b (get b 2)
+                                  new-a `(+ ~(get a 1) ~(- +a (min +a +b)))
+                                  new-b `(+ ~(get b 1) ~(- +b (min +a +b))))
+                            (simplify-constraint
+                                `(=
+                                    ~(maybe-simplify new-a {})
+                                    ~(maybe-simplify new-b {}))))
+                        ;; else subtract second operand of + from both sides
+                        (simplify-constraint `(= ~(get a 1) (+ ~b ~(- (get a 2))))))]
+                [(or (= (get a 0) '%) (= (get a 0) '//))
+                    (simplify-constraint `(= ~(div-simplify a) ~b))]
+                [True expr]))
+        expr))
+
+(defn get-constraints [z-exprs z-val]
+    ;; makes big assumptions about the input!
+    (setv z-symbol (z-iter)
+          bindings {(next z-symbol) z-val}
+          constraints [])
+    (for [z-expr z-exprs]
+        (do
+            (setv z-expr (substitute bindings z-expr)
+                  next-z-expr
+                (if (= (get z-expr 0) 'if)
+                    ;; make this condition true
+                    (do 
+                        (.append constraints (simplify-constraint (get z-expr 1)))
+                        (get z-expr 2)) ; i.e. value when true
+                    ;; else
+                    z-expr))
+            (assoc bindings (next z-symbol)
+                (div-simplify
+                    (maybe-simplify
+                        (substitute bindings next-z-expr) bindings)))))
+    constraints)
+
 (defn update-state [state line d-symbols]
     ;; mutates state into new state, with w, x, y, z as s-expressions
     (setv parts (.split (.strip line)))
@@ -157,73 +231,14 @@
                 (.append z-expressions (cond-simplify (get state "z")))
                 (assoc state "z" (next z-symbols)))))
     (.append z-expressions (cond-simplify (get state "z")))
-    (setv z-expressions (list (rest z-expressions)))
-    (for [expr z-expressions]
-        (print (hy.repr expr)))
-    ;; see comments below for where these numbers came from
+    (setv z-expressions (list (rest z-expressions))
+          constraints (get-constraints z-expressions 0))
+    (list (map (fn [x] (print (hy.repr x))) constraints))
     (setv part1 99691891979938
           part2 27141191213911)
     (print (if (verify z-expressions part1) part1 "no solution for part 1"))
     (print (if (verify z-expressions part2) part2 "no solution for part 2")))
 
 (main)
-
-;;; Program output:
-;   '(+ (* z0 26) d0)
-;   '(+ (* z1 26) (+ d1 3))
-;   '(+ (* z2 26) (+ d2 8))
-;   '(if (= (+ (% z3 26) -5) d3) (// z3 26) (+ (* (// z3 26) 26) (+ d3 5)))
-;   '(+ (* z4 26) (+ d4 13))
-;   '(+ (* z5 26) (+ d5 9))
-;   '(+ (* z6 26) (+ d6 6))
-;   '(if (= (+ (% z7 26) -14) d7) (// z7 26) (+ (* (// z7 26) 26) (+ d7 1)))
-;   '(if (= (+ (% z8 26) -8) d8) (// z8 26) (+ (* (// z8 26) 26) (+ d8 1)))
-;   '(+ (* z9 26) (+ d9 2))
-;   '(if (= (% z10 26) d10) (// z10 26) (+ (* (// z10 26) 26) (+ d10 7)))
-;   '(if (= (+ (% z11 26) -5) d11) (// z11 26) (+ (* (// z11 26) 26) (+ d11 5)))
-;   '(if (= (+ (% z12 26) -9) d12) (// z12 26) (+ (* (// z12 26) 26) (+ d12 8)))
-;   '(if (= (+ (% z13 26) -1) d13) (// z13 26) (+ (* (// z13 26) 26) (+ d13 15)))
-
-;;; Therefore, given z0 == 0 and letting B=26:
-;   z1 = d0
-;   z2 = B.z1 + (d1+3)
-;      = B.d0 + (d1+3)
-;   z3 = B.z2 + (d2+8)
-;      = BB.d0 + B(d1+3) + (d2+8)
-;   z4 = { z3/B = B.d0 + (d1+3) if d2+8 == d3+5
-;        { z3 + (d3+5) otherwise
-;   (Assume d2+8 == d3+5, since we need to approach zero => d3 == d2+3)
-; > (so part1: d2=6, d3=9 or part2: d2=1, d3=4)
-;   z5 = B.z4 + (d4+13)
-;      = BB.d0 + B(d1+3) + (d4+13)
-;   z6 = B.z5 + (d5+9)
-;      = BBB.d0 + BB(d1+3) + B(d4+13) + (d5+9)
-;   z7 = B.z6 + (d6+6)
-;      = BBBB.d0 + BBB(d1+3) + BB(d4+13) + B(d5+9) + (d6+6)
-;   z8 = { z7/B = BBB.d0 + BB(d1+3) + B(d4+13) + (d5+9) if d6+6 == d7+14
-;        { ignore otherwise
-;   (=> d6 == d7+8)
-; > (so part1 and part2: d6=1, d7=9)
-;   z9 = { z8/B = BB.d0 + B(d1+3) + (d4+13) if d5+9 == d8+8
-;   (=> d5+1 == d8)
-; > (so part1: d5=8, d8=9 or part2: d5=1, d8=2)
-;   z10 = B.z9 + (d9+2)
-;       = BBB.d0 + BB(d1+3) + B(d4+13) + (d9+2)
-;   z11 = { z10/B = BB.d0 + B(d1+3) + (d4+13) if d9+2 == d10
-;   (=> d9+2 == d10
-; > (so part1: d9=7, d10=9 or part2: d9=1, d10=3)
-;   z12 = { z11/B = B.d0 + (d1+3) if d4+13 == d11+5
-;   (=> d4+8 == d11)
-; > (so part1 and part2: d4=1, d11=9)
-;   z13 = { z12/B = d0 if d1+3 == d12+9
-;   (=> d1 == d12+6)
-; > (so part1: d1=9, d12=3 or part2: d1=1, d12=7)
-;   z14 = { z13/B = 0 if d0 == d13+1
-;   (=> d0 == d13+1)
-; > (so part1: d0=9, d13=8 or part2: d0=2, d13=1)
-
-; putting it all together:
-; part1 = 99691891979938
-; part2 = 27141191213911
 
 ;;; It *looks* like I'm writing Lisp, but it *feels* like I'm writing Python.
