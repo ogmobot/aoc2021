@@ -158,6 +158,7 @@
                         ;; else subtract second operand of + from both sides
                         (simplify-constraint `(= ~(get a 1) (+ ~b ~(- (get a 2))))))]
                 [(or (= (get a 0) '%) (= (get a 0) '//))
+                    ;; if div-simplify returns a, this is an infinite loop
                     (simplify-constraint `(= ~(div-simplify a) ~b))]
                 [True expr]))
         expr))
@@ -183,6 +184,27 @@
                     (maybe-simplify
                         (substitute bindings next-z-expr) bindings)))))
     constraints)
+
+(defn determine-bindings [constraints minmax?]
+    (setv bindings {}
+          [initial-digit out-of-bounds? delta]
+            (get
+                {'min
+                    [1 (fn [a b] (< (min a b) 1)) 1]
+                 'max
+                    [9 (fn [a b] (> (max a b) 9)) -1]
+                } minmax?))
+    (for [constraint constraints]
+        (setv a (get constraint 1)  ; d
+              b (get constraint 2)) ; (+ d n)
+        (assoc bindings (get b 1) initial-digit)
+        (assoc bindings a (hy.eval (substitute bindings b)))
+        (while (out-of-bounds?
+                (hy.eval (substitute bindings a))
+                (hy.eval (substitute bindings b)))
+            (assoc bindings a (+ (get bindings a) delta))
+            (assoc bindings (get b 1) (+ (get bindings (get b 1)) delta))))
+    bindings)
 
 (defn update-state [state line d-symbols]
     ;; mutates state into new state, with w, x, y, z as s-expressions
@@ -232,12 +254,15 @@
                 (assoc state "z" (next z-symbols)))))
     (.append z-expressions (cond-simplify (get state "z")))
     (setv z-expressions (list (rest z-expressions))
-          constraints (get-constraints z-expressions 0))
-    (list (map (fn [x] (print (hy.repr x))) constraints))
-    (setv part1 99691891979938
-          part2 27141191213911)
-    (print (if (verify z-expressions part1) part1 "no solution for part 1"))
-    (print (if (verify z-expressions part2) part2 "no solution for part 2")))
+          constraints (get-constraints z-expressions 0)
+          max-binding (determine-bindings constraints 'max)
+          min-binding (determine-bindings constraints 'min))
+    (setv part1 (int (.join "" (map (fn [d] (str (get max-binding d))) (d-iter))))
+          part2 (int (.join "" (map (fn [d] (str (get min-binding d))) (d-iter)))))
+    (assert (verify z-expressions part1))
+    (assert (verify z-expressions part2))
+    (print part1)
+    (print part2))
 
 (main)
 
