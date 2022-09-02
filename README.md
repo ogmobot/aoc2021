@@ -184,7 +184,7 @@ Apparently a lot of the people solving this problem initially got tripped up by 
 
 **J**: APL for people with normal keyboards.
 
-**Syntax Highlight**: `:^` (applies a function *n* times; or determines and applies the inverse function, if *n* is negative; or finds a fixed point of the function, if *n* is infinity!)
+**Syntax Highlight**: `^:` (applies a function *n* times; or determines and applies the inverse function, if *n* is negative; or finds a fixed point of the function, if *n* is infinity!)
 
 Day 21: Guile Scheme
 --------------------
